@@ -98,8 +98,11 @@ sudo reboot
 `setup_pi.sh` is idempotent and:
 1. installs system deps (`python3`, `python3-pillow`, `python3-requests`, …),
 2. sets the timezone to `Europe/Zurich`,
-3. installs the RGB matrix library via Adafruit's script (**choose Bonnet +
-   Quality**),
+3. installs the RGB matrix library via Adafruit's installer (**choose Bonnet +
+   Quality**) into a venv at `env/` — Adafruit's `rgb-matrix.py` won't install into
+   Debian's externally-managed system Python, so the bindings (and the service)
+   use a `--system-site-packages` venv that still sees apt-installed
+   Pillow/requests,
 4. disables onboard sound (blacklist `snd_bcm2835` + `dtparam=audio=off`) — required
    by the E↔8 / GPIO4↔18 mods,
 5. isolates CPU core 3 (`isolcpus=3`) for the panel's refresh thread,

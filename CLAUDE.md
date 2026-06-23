@@ -27,6 +27,11 @@ a lock) holds raw `Departure`s → 30fps render loop builds `StationGroup`s
 
 ## Key conventions / gotchas
 
+- **rgbmatrix lives in a venv, not system Python.** Adafruit's installer refuses
+  Debian's externally-managed Python, so `setup_pi.sh` builds the bindings into a
+  `--system-site-packages` venv at `env/` and rewrites the systemd unit's
+  `ExecStart` to `env/bin/python3 -m src`. The venv still sees apt-installed
+  Pillow/requests. Don't switch the service back to `/usr/bin/python3`.
 - **`rgbmatrix` only on the Pi.** Keep its import isolated to `renderer.py`. Tests,
   `layout.py`, and `tools/preview.py` must stay importable on the dev machine
   (which has no `rgbmatrix`). If you need new render logic testable off-Pi, put it

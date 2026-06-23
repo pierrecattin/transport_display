@@ -8,8 +8,10 @@ Type=simple
 # The matrix library needs root for GPIO/PWM; it drops privileges after init
 # (RGBMatrixOptions.drop_privileges = True).
 User=root
+# WorkingDirectory and ExecStart are rewritten by setup_pi.sh to match where the
+# repo is cloned and its venv (env/) that holds the rgbmatrix bindings.
 WorkingDirectory=/home/pierre/transport_display
-ExecStart=/usr/bin/python3 -m src
+ExecStart=/home/pierre/transport_display/env/bin/python3 -m src
 Restart=always
 RestartSec=5
 
