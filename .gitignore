@@ -5,3 +5,4 @@ env/
 preview.png
 *.pil
 *.pbm
+.vscode/
