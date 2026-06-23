@@ -121,12 +121,21 @@ def visible_departures(
 ) -> list[tuple[Departure, int]]:
     """Departures still worth showing, paired with their live minute count.
 
-    Drops anything departing in fewer than ``min_time`` minutes. Input is
-    assumed already sorted by timestamp, so output stays sorted.
+    Drops anything departing in fewer than ``min_time`` minutes, then keeps only
+    the *soonest* catchable departure per ``(number, label)`` connection — so a
+    busy line doesn't fill the panel with its own repeats and crowd out the other
+    lines/stations. Input is assumed already sorted by timestamp, so output stays
+    sorted and the first survivor of each key is the next one you can catch.
     """
     result: list[tuple[Departure, int]] = []
+    seen: set[tuple[str, str]] = set()
     for dep in departures:
         mins = minutes_until(dep.departure_ts, now)
-        if mins >= min_time:
-            result.append((dep, mins))
+        if mins < min_time:
+            continue
+        key = (dep.number, dep.label)
+        if key in seen:
+            continue
+        seen.add(key)
+        result.append((dep, mins))
     return result

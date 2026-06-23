@@ -56,10 +56,18 @@ def test_visible_departures_applies_min_time():
     assert [(d.number, m) for d, m in visible] == [("61", 10), ("62", 15)]
 
 
-def test_visible_departures_min_time_zero_keeps_all():
+def test_visible_departures_dedupes_to_next_per_connection():
     deps = parse_departures(_board(), CONNS)
     visible = visible_departures(deps, min_time=0, now=BASE)
-    assert len(visible) == 4
+    # 62 appears twice (1min, 15min) -> only the soonest catchable one is kept.
+    assert [(d.number, m) for d, m in visible] == [("62", 1), ("32", 3), ("61", 10)]
+
+
+def test_visible_departures_min_time_drops_then_dedupes():
+    deps = parse_departures(_board(), CONNS)
+    visible = visible_departures(deps, min_time=5, now=BASE)
+    # 62@1min dropped by min_time, so 62@15min becomes the next catchable 62.
+    assert [(d.number, m) for d, m in visible] == [("61", 10), ("62", 15)]
 
 
 def test_parse_skips_malformed_entries():
