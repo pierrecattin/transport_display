@@ -20,11 +20,11 @@
                 },
                 {
                     "number": "61",
-                    "destination": "Zürich, Strassenverkehrsamt"
+                    "destination": "Wallisellen, Glatt (Bus)"
                 },
                 {
                     "number": "62",
-                    "destination": "Wallisellen, Glatt (Bus)"
+                    "destination": "Zürich, Schwamendingerplatz"
                 }
             ]
         }
@@ -32,7 +32,8 @@
     "destination_labels": {
         "Zürich, Bucheggplatz": "Bucheggplatz",
         "Zürich, Strassenverkehrsamt": "Strassenverkehrsamt",
-        "Wallisellen, Glatt (Bus)": "Wallisellen"
+        "Wallisellen, Glatt (Bus)": "Wallisellen",
+        "Zürich, Schwamendingerplatz": "Schwamendingerplatz"
     },
     "display": {
         "brightness": 60,
