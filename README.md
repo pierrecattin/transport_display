@@ -111,8 +111,9 @@ sudo reboot
 A reboot is required for the CPU-isolation and audio changes. Verify after reboot:
 
 ```bash
-cat /proc/cmdline        # contains isolcpus=3
-lsmod | grep snd         # empty
+cat /proc/cmdline          # contains isolcpus=3
+lsmod | grep snd_bcm2835   # empty (the onboard analog audio that conflicts with
+                           # the matrix PWM; HDMI audio modules may remain, that's fine)
 systemctl status transport_display
 journalctl -u transport_display -f
 ```

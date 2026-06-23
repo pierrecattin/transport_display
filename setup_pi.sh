@@ -108,8 +108,8 @@ echo
 echo "     sudo reboot"
 echo
 echo " After reboot, verify with:"
-echo "     cat /proc/cmdline        # should contain isolcpus=3"
-echo "     lsmod | grep snd         # should be empty"
+echo "     cat /proc/cmdline          # should contain isolcpus=3"
+echo "     lsmod | grep snd_bcm2835   # should be empty (HDMI audio may remain)"
 echo "     systemctl status ${SERVICE_NAME}"
 echo "     journalctl -u ${SERVICE_NAME} -f"
 echo "==============================================================="
