@@ -1,0 +1,7 @@
+# Shell scripts must stay LF so they run on the Pi regardless of dev OS.
+*.sh text eol=lf
+setup_pi.sh text eol=lf
+*.service text eol=lf
+
+# Bitmap fonts: leave bytes untouched.
+*.bdf text eol=lf

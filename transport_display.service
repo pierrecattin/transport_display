@@ -1,0 +1,17 @@
+[Unit]
+Description=Bus departure LED matrix display
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# The matrix library needs root for GPIO/PWM; it drops privileges after init
+# (RGBMatrixOptions.drop_privileges = True).
+User=root
+WorkingDirectory=/home/pierre/transport_display
+ExecStart=/usr/bin/python3 -m src
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,48 @@
+{
+    "stations": [
+        {
+            "id": "8591041",
+            "min_time": 2,
+            "connections": [
+                {
+                    "number": "40",
+                    "destination": "Zürich, Bucheggplatz"
+                }
+            ]
+        },
+        {
+            "id": "8591285",
+            "min_time": 5,
+            "connections": [
+                {
+                    "number": "32",
+                    "destination": "Zürich, Strassenverkehrsamt"
+                },
+                {
+                    "number": "61",
+                    "destination": "Zürich, Strassenverkehrsamt"
+                },
+                {
+                    "number": "62",
+                    "destination": "Wallisellen, Glatt (Bus)"
+                }
+            ]
+        }
+    ],
+    "destination_labels": {
+        "Zürich, Bucheggplatz": "Bucheggplatz",
+        "Zürich, Strassenverkehrsamt": "Strassenverkehrsamt",
+        "Wallisellen, Glatt (Bus)": "Wallisellen"
+    },
+    "display": {
+        "brightness": 60,
+        "poll_interval_sec": 60,
+        "api_limit": 30,
+        "scroll_px_per_sec": 20,
+        "font": "6x10",
+        "header_font": "5x7",
+        "gpio_slowdown": 2,
+        "pwm_bits": 11,
+        "pwm_lsb_nanoseconds": 130
+    }
+}

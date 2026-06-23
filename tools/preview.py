@@ -1,0 +1,47 @@
+"""Render the panel layout to a PNG on a dev machine (no hardware needed).
+
+    python tools/preview.py [out.png] [scale]
+
+Uses src.layout.FrameComposer with representative data so you can eyeball the
+clock, per-station headers, bus numbers, scrolling destinations and minutes.
+"""
+
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from src.layout import FrameComposer, StationGroup  # noqa: E402
+from src.transport import Departure  # noqa: E402
+
+
+def _dep(number, label):
+    return Departure(number=number, label=label, departure_ts=0)
+
+
+def main():
+    out = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("preview.png")
+    scale = int(sys.argv[2]) if len(sys.argv) > 2 else 8
+
+    composer = FrameComposer("6x10", "5x7", scroll_px_per_sec=20)
+    groups = [
+        StationGroup("8591041", "Buchegg", [(_dep("40", "Bucheggplatz"), 4)]),
+        StationGroup(
+            "8591285",
+            "Zürich, Neuaffoltern",
+            [
+                (_dep("32", "Strassenverkehrsamt"), 7),
+                (_dep("61", "Strassenverkehrsamt"), 12),
+                (_dep("62", "Wallisellen"), 15),
+            ],
+        ),
+    ]
+
+    img = composer.compose(groups, "16:32", now=2.0)  # now>0 -> some scroll offset
+    big = img.resize((img.width * scale, img.height * scale), resample=0)  # nearest
+    big.save(out)
+    print(f"Wrote {out} ({img.width}x{img.height} scaled x{scale})")
+
+
+if __name__ == "__main__":
+    main()

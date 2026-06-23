@@ -1,0 +1,29 @@
+{
+  "station": { "id": "8591285", "name": "Zürich, Neuaffoltern" },
+  "stationboard": [
+    {
+      "name": "008881", "category": "B", "number": "32", "to": "Zürich, Holzerhurd",
+      "stop": { "station": { "id": "8591285", "name": "Zürich, Neuaffoltern" }, "departureTimestamp": 1782198120 }
+    },
+    {
+      "name": "009224", "category": "B", "number": "32", "to": "Zürich, Strassenverkehrsamt",
+      "stop": { "station": { "id": "8591285", "name": "Zürich, Neuaffoltern" }, "departureTimestamp": 1782198180 }
+    },
+    {
+      "name": "009799", "category": "B", "number": "61", "to": "Zürich, Strassenverkehrsamt",
+      "stop": { "station": { "id": "8591285", "name": "Zürich, Neuaffoltern" }, "departureTimestamp": 1782198600 }
+    },
+    {
+      "name": "010106", "category": "B", "number": "62", "to": "Wallisellen, Glatt (Bus)",
+      "stop": { "station": { "id": "8591285", "name": "Zürich, Neuaffoltern" }, "departureTimestamp": 1782198060 }
+    },
+    {
+      "name": "010378", "category": "B", "number": "62", "to": "Wallisellen, Glatt (Bus)",
+      "stop": { "station": { "id": "8591285", "name": "Zürich, Neuaffoltern" }, "departureTimestamp": 1782198900 }
+    },
+    {
+      "name": "011500", "category": "T", "number": "11", "to": "Zürich, Rehalp",
+      "stop": { "station": { "id": "8591285", "name": "Zürich, Neuaffoltern" }, "departureTimestamp": 1782198300 }
+    }
+  ]
+}

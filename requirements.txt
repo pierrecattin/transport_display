@@ -1,0 +1,6 @@
+# Runtime dependencies.
+#
+# On the Raspberry Pi these are installed by setup_pi.sh via apt
+# (python3-requests) so we don't fight Bookworm's externally-managed
+# environment. This file is kept for the dev machine / unit tests.
+requests>=2.25
