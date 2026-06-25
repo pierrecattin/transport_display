@@ -28,6 +28,40 @@ def test_display_defaults_and_overrides() -> None:
     assert cfg.display.font == "6x10"
 
 
+def test_color_defaults_when_absent() -> None:
+    cfg = load_config(REPO_CONFIG)
+    # Defaults mirror the values layout.py used to hardcode.
+    assert cfg.colors.clock == (255, 176, 0)
+    assert cfg.colors.minutes == (0, 230, 80)
+
+
+def test_color_overrides_hex_and_rgb(tmp_path: Path) -> None:
+    p = tmp_path / "c.json"
+    p.write_text(json.dumps({
+        "stations": [{"id": "1", "display_name": "S", "min_time": 0,
+                      "connections": [{"number": "9", "destination": "X"}]}],
+        "destination_labels": {},
+        "colors": {"clock": "#FF0000", "header": [0, 128, 255]},
+    }), encoding="utf-8")
+    cfg = load_config(p)
+    assert cfg.colors.clock == (255, 0, 0)
+    assert cfg.colors.header == (0, 128, 255)
+    # Unspecified roles keep their defaults.
+    assert cfg.colors.number == (255, 220, 0)
+
+
+def test_rejects_bad_hex_color(tmp_path: Path) -> None:
+    p = tmp_path / "c.json"
+    p.write_text(json.dumps({
+        "stations": [{"id": "1", "display_name": "S", "min_time": 0,
+                      "connections": [{"number": "9", "destination": "X"}]}],
+        "destination_labels": {},
+        "colors": {"clock": "#ZZZZZZ"},
+    }), encoding="utf-8")
+    with pytest.raises(ConfigError):
+        load_config(p)
+
+
 def test_missing_label_falls_back_to_stripped_city(tmp_path: Path) -> None:
     p = tmp_path / "c.json"
     p.write_text(json.dumps({

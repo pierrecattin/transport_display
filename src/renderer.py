@@ -42,7 +42,9 @@ class Renderer:
         # Load fonts BEFORE constructing RGBMatrix: RGBMatrix() drops privileges
         # to user 'daemon', which can't read the .bdf files under /home/pierre
         # (home is not world-traversable on Bookworm/trixie).
-        self.composer = FrameComposer(d.font, d.header_font, d.scroll_px_per_sec)
+        self.composer = FrameComposer(
+            d.font, d.header_font, d.scroll_px_per_sec, config.colors
+        )
 
         self.matrix = RGBMatrix(options=options)
         self.canvas = self.matrix.CreateFrameCanvas()

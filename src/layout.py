@@ -21,6 +21,7 @@ from pathlib import Path
 
 from PIL import BdfFontFile, Image, ImageDraw, ImageFont
 
+from .config import Colors
 from .transport import Departure
 
 PANEL_W = 128
@@ -29,12 +30,8 @@ PANEL_H = 64
 FONTS_DIR = Path(__file__).resolve().parent.parent / "fonts"
 _FONT_CACHE_DIR = Path(tempfile.gettempdir()) / "transport_display_fonts"
 
-# Colours (R, G, B).
-COL_CLOCK = (255, 176, 0)  # amber
-COL_HEADER = (0, 200, 255)  # cyan
-COL_NUMBER = (255, 220, 0)  # yellow
-COL_DEST = (235, 235, 235)  # near-white
-COL_MINUTES = (0, 230, 80)  # green
+# Render colours live in the config now (src.config.Colors); the defaults there
+# match what this module used to hardcode.
 
 SCROLL_GAP = 12  # px of blank between the looped copies of a scrolling label
 ROW_PAD = 1  # px between rows
@@ -93,7 +90,14 @@ class FrameComposer:
     Holds fonts, the fixed column geometry, and per-row horizontal scroll state.
     """
 
-    def __init__(self, body_font_name: str, header_font_name: str, scroll_px_per_sec: float):
+    def __init__(
+        self,
+        body_font_name: str,
+        header_font_name: str,
+        scroll_px_per_sec: float,
+        colors: Colors | None = None,
+    ):
+        self.colors = colors if colors is not None else Colors()
         self.body_font = load_pil_font(FONTS_DIR / f"{body_font_name}.bdf")
         self.header_font = load_pil_font(FONTS_DIR / f"{header_font_name}.bdf")
 
@@ -126,7 +130,7 @@ class FrameComposer:
             # First header shares the top row with the clock; clip it short.
             header_max = (clock_x - ZONE_GAP) if y == 0 else PANEL_W
             header = fit_text(self.header_font, group.name, max(0, header_max))
-            draw.text((0, y), header, font=self.header_font, fill=COL_HEADER)
+            draw.text((0, y), header, font=self.header_font, fill=self.colors.header)
             y += self.header_h + ROW_PAD
 
             filled = False
@@ -143,7 +147,7 @@ class FrameComposer:
             y += STATION_GAP
 
         # Clock drawn last so nothing overlaps it.
-        draw.text((clock_x, 0), clock_text, font=self.header_font, fill=COL_CLOCK)
+        draw.text((clock_x, 0), clock_text, font=self.header_font, fill=self.colors.clock)
 
         # Forget scroll state for rows no longer shown (bounds the dict).
         self._offsets = {k: v for k, v in self._offsets.items() if k in seen}
@@ -160,12 +164,12 @@ class FrameComposer:
         now: float,
     ) -> None:
         # Bus number, left, uncropped.
-        draw.text((0, y), dep.number, font=self.body_font, fill=COL_NUMBER)
+        draw.text((0, y), dep.number, font=self.body_font, fill=self.colors.number)
 
         # Minutes, right-aligned, uncropped, Swiss "7'" notation.
         mins_text = f"{mins}'"
         mins_w = text_w(self.body_font, mins_text)
-        draw.text((PANEL_W - mins_w, y), mins_text, font=self.body_font, fill=COL_MINUTES)
+        draw.text((PANEL_W - mins_w, y), mins_text, font=self.body_font, fill=self.colors.minutes)
 
         # Destination, clipped to its column, scrolling if too wide.
         self._draw_dest(img, draw, self.dest_x0, y, dep.label, key, now)
@@ -183,15 +187,15 @@ class FrameComposer:
         w = text_w(self.body_font, text)
         col_w = self.dest_col_w
         if w <= col_w:
-            draw.text((x0, y), text, font=self.body_font, fill=COL_DEST)
+            draw.text((x0, y), text, font=self.body_font, fill=self.colors.dest)
             return
 
         period = w + SCROLL_GAP
         off = self._scroll_offset(key, now, period)
         col = Image.new("RGB", (col_w, self.row_h))
         cd = ImageDraw.Draw(col)
-        cd.text((-off, 0), text, font=self.body_font, fill=COL_DEST)
-        cd.text((-off + period, 0), text, font=self.body_font, fill=COL_DEST)
+        cd.text((-off, 0), text, font=self.body_font, fill=self.colors.dest)
+        cd.text((-off + period, 0), text, font=self.body_font, fill=self.colors.dest)
         img.paste(col, (x0, y))
 
     def _scroll_offset(self, key: str, now: float, period: int) -> int:

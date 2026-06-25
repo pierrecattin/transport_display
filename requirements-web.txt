@@ -1,0 +1,6 @@
+# Config web UI backend (runs on the Pi in its own venv: webenv/).
+# Kept separate from the apt-installed display runtime. Plain uvicorn (not
+# uvicorn[standard]) to stay light on the Pi 3B; Pillow/requests come from the
+# venv's --system-site-packages (apt python3-pillow / python3-requests).
+fastapi>=0.110
+uvicorn>=0.27

@@ -1,5 +1,9 @@
 # Dev-machine tooling (not needed on the Pi). Install with:
 #   pip install -r requirements-dev.txt
 -r requirements.txt
+-r requirements-web.txt
 mypy>=1.8
 types-requests
+# Pillow is apt-installed on the Pi; the dev machine needs it for layout.py,
+# the preview tool and the web backend's preview endpoint.
+pillow>=10

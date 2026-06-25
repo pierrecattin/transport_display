@@ -11,6 +11,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from src.config import load_config  # noqa: E402
 from src.layout import FrameComposer, StationGroup  # noqa: E402
 from src.transport import Departure  # noqa: E402
 
@@ -19,7 +20,8 @@ def _dep(number: str, label: str) -> Departure:
     return Departure(number=number, label=label, departure_ts=0)
 
 
-PREVIEW_DIR = Path(__file__).resolve().parent.parent / "preview"
+ROOT = Path(__file__).resolve().parent.parent
+PREVIEW_DIR = ROOT / "preview"
 
 
 def main() -> None:
@@ -28,12 +30,15 @@ def main() -> None:
 
     out.parent.mkdir(parents=True, exist_ok=True)
 
-    composer = FrameComposer("6x10", "5x7", scroll_px_per_sec=20)
+    # Use the repo config's fonts + colours so the preview reflects edits.
+    cfg = load_config(ROOT / "config.json")
+    d = cfg.display
+    composer = FrameComposer(d.font, d.header_font, d.scroll_px_per_sec, cfg.colors)
     groups = [
         StationGroup("8591041", "Buchegg", [(_dep("40", "Bucheggplatz"), 4)]),
         StationGroup(
             "8591285",
-            "Zürich, Neuaffoltern",
+            "Neuaffoltern",
             [
                 (_dep("32", "Strassenverkehrsamt"), 7),
                 (_dep("61", "Strassenverkehrsamt"), 12),

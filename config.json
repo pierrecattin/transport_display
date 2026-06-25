@@ -47,5 +47,12 @@
         "gpio_slowdown": 2,
         "pwm_bits": 11,
         "pwm_lsb_nanoseconds": 130
+    },
+    "colors": {
+        "clock": "#634B18",
+        "header": "#00C8FF",
+        "number": "#FFDC00",
+        "dest": "#EBEBEB",
+        "minutes": "#00E650"
     }
 }

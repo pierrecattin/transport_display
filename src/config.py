@@ -43,6 +43,21 @@ DISPLAY_DEFAULTS: DisplayDefaults = {
 }
 
 
+# The render roles drawn on the panel and their default colours, as #RRGGBB.
+# These mirror what layout.py used to hardcode; the optional "colors" section
+# overrides any subset. ``COLOR_ROLES`` fixes the field order (used by the web
+# UI and by ``_parse_colors``).
+COLOR_ROLES = ("clock", "header", "number", "dest", "minutes")
+
+COLOR_DEFAULTS: dict[str, str] = {
+    "clock": "#FFB000",  # amber
+    "header": "#00C8FF",  # cyan
+    "number": "#FFDC00",  # yellow
+    "dest": "#EBEBEB",  # near-white
+    "minutes": "#00E650",  # green
+}
+
+
 @dataclass(frozen=True)
 class Connection:
     """A bus line + direction we want to watch at a station.
@@ -77,11 +92,39 @@ class Display:
     pwm_lsb_nanoseconds: int = DISPLAY_DEFAULTS["pwm_lsb_nanoseconds"]
 
 
+RGB = tuple[int, int, int]
+
+
+def _hex_to_rgb(value: str) -> RGB:
+    """Parse ``#RRGGBB`` (the leading ``#`` is optional) into an (r, g, b)."""
+    h = value.lstrip("#")
+    if len(h) != 6:
+        raise ValueError(f"expected #RRGGBB, got {value!r}")
+    try:
+        r, g, b = (int(h[i : i + 2], 16) for i in (0, 2, 4))
+    except ValueError as exc:
+        raise ValueError(f"invalid hex colour {value!r}") from exc
+    return (r, g, b)
+
+
+@dataclass(frozen=True)
+class Colors:
+    """The five render colours, as (r, g, b) tuples. Defaults match the values
+    layout.py used to hardcode."""
+
+    clock: RGB = _hex_to_rgb(COLOR_DEFAULTS["clock"])
+    header: RGB = _hex_to_rgb(COLOR_DEFAULTS["header"])
+    number: RGB = _hex_to_rgb(COLOR_DEFAULTS["number"])
+    dest: RGB = _hex_to_rgb(COLOR_DEFAULTS["dest"])
+    minutes: RGB = _hex_to_rgb(COLOR_DEFAULTS["minutes"])
+
+
 @dataclass
 class Config:
     stations: list[Station]
     destination_labels: dict[str, str]
     display: Display = field(default_factory=Display)
+    colors: Colors = field(default_factory=Colors)
 
 
 class ConfigError(ValueError):
@@ -169,7 +212,13 @@ def load_config(path: str | Path) -> Config:
         stations.append(Station(id=sid, display_name=display_name, min_time=min_time, connections=conns))
 
     display = _parse_display(raw.get("display", {}))
-    return Config(stations=stations, destination_labels=labels, display=display)
+    colors = _parse_colors(raw.get("colors", {}))
+    return Config(
+        stations=stations,
+        destination_labels=labels,
+        display=display,
+        colors=colors,
+    )
 
 
 def _parse_display(raw: object) -> Display:
@@ -194,3 +243,33 @@ def _parse_display(raw: object) -> Display:
             raw.get("pwm_lsb_nanoseconds", DISPLAY_DEFAULTS["pwm_lsb_nanoseconds"])
         ),
     )
+
+
+def _parse_one_color(where: str, value: object) -> RGB:
+    """Coerce a config colour value to (r, g, b): accepts ``#RRGGBB`` or
+    ``[r, g, b]`` (0–255)."""
+    if isinstance(value, str):
+        try:
+            return _hex_to_rgb(value)
+        except ValueError as exc:
+            raise ConfigError(f"{where}: {exc}") from exc
+    if isinstance(value, (list, tuple)) and len(value) == 3:
+        rgb = []
+        for component in value:
+            if not isinstance(component, int) or isinstance(component, bool):
+                raise ConfigError(f"{where} components must be integers 0-255")
+            if not 0 <= component <= 255:
+                raise ConfigError(f"{where} components must be in range 0-255")
+            rgb.append(component)
+        return (rgb[0], rgb[1], rgb[2])
+    raise ConfigError(f"{where} must be a '#RRGGBB' string or [r, g, b] list")
+
+
+def _parse_colors(raw: object) -> Colors:
+    if not isinstance(raw, dict):
+        raise ConfigError("'colors' must be an object if present")
+    parsed: dict[str, RGB] = {}
+    for role in COLOR_ROLES:
+        if role in raw:
+            parsed[role] = _parse_one_color(f"colors.{role}", raw[role])
+    return Colors(**parsed)

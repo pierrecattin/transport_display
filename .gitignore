@@ -1,9 +1,16 @@
 __pycache__/
 *.pyc
 env/
+webenv/
 .pytest_cache/
+.mypy_cache/
 preview/
 preview.png
 *.pil
 *.pbm
 .vscode/
+
+# Runtime artifacts written by the config web UI (server/app.py).
+config.json.bak
+config.json.tmp
+config.json.preview.tmp

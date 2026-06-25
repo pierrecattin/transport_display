@@ -1,0 +1,6 @@
+node_modules
+*.local
+.vite
+
+# NOTE: dist/ is intentionally NOT ignored — the built app is committed and
+# deployed to the Pi via git (the Pi has no Node toolchain). See README.
