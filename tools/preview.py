@@ -19,9 +19,14 @@ def _dep(number: str, label: str) -> Departure:
     return Departure(number=number, label=label, departure_ts=0)
 
 
+PREVIEW_DIR = Path(__file__).resolve().parent.parent / "preview"
+
+
 def main() -> None:
-    out = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("preview.png")
+    out = Path(sys.argv[1]) if len(sys.argv) > 1 else PREVIEW_DIR / "preview.png"
     scale = int(sys.argv[2]) if len(sys.argv) > 2 else 8
+
+    out.parent.mkdir(parents=True, exist_ok=True)
 
     composer = FrameComposer("6x10", "5x7", scroll_px_per_sec=20)
     groups = [
