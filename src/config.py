@@ -12,11 +12,25 @@ import json
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import TypedDict
 
 log = logging.getLogger(__name__)
 
+
+class DisplayDefaults(TypedDict):
+    brightness: int
+    poll_interval_sec: int
+    api_limit: int
+    scroll_px_per_sec: float
+    font: str
+    header_font: str
+    gpio_slowdown: int
+    pwm_bits: int
+    pwm_lsb_nanoseconds: int
+
+
 # Defaults for the optional "display" section.
-DISPLAY_DEFAULTS = {
+DISPLAY_DEFAULTS: DisplayDefaults = {
     "brightness": 60,
     "poll_interval_sec": 60,
     "api_limit": 30,
@@ -161,16 +175,22 @@ def load_config(path: str | Path) -> Config:
 def _parse_display(raw: object) -> Display:
     if not isinstance(raw, dict):
         raise ConfigError("'display' must be an object if present")
-    merged = {**DISPLAY_DEFAULTS, **raw}
-    # Ignore unknown keys but keep known ones.
+    # Read each known key from the config, falling back to its default; unknown
+    # keys are ignored.
     return Display(
-        brightness=int(merged["brightness"]),
-        poll_interval_sec=int(merged["poll_interval_sec"]),
-        api_limit=int(merged["api_limit"]),
-        scroll_px_per_sec=float(merged["scroll_px_per_sec"]),
-        font=str(merged["font"]),
-        header_font=str(merged["header_font"]),
-        gpio_slowdown=int(merged["gpio_slowdown"]),
-        pwm_bits=int(merged["pwm_bits"]),
-        pwm_lsb_nanoseconds=int(merged["pwm_lsb_nanoseconds"]),
+        brightness=int(raw.get("brightness", DISPLAY_DEFAULTS["brightness"])),
+        poll_interval_sec=int(
+            raw.get("poll_interval_sec", DISPLAY_DEFAULTS["poll_interval_sec"])
+        ),
+        api_limit=int(raw.get("api_limit", DISPLAY_DEFAULTS["api_limit"])),
+        scroll_px_per_sec=float(
+            raw.get("scroll_px_per_sec", DISPLAY_DEFAULTS["scroll_px_per_sec"])
+        ),
+        font=str(raw.get("font", DISPLAY_DEFAULTS["font"])),
+        header_font=str(raw.get("header_font", DISPLAY_DEFAULTS["header_font"])),
+        gpio_slowdown=int(raw.get("gpio_slowdown", DISPLAY_DEFAULTS["gpio_slowdown"])),
+        pwm_bits=int(raw.get("pwm_bits", DISPLAY_DEFAULTS["pwm_bits"])),
+        pwm_lsb_nanoseconds=int(
+            raw.get("pwm_lsb_nanoseconds", DISPLAY_DEFAULTS["pwm_lsb_nanoseconds"])
+        ),
     )

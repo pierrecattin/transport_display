@@ -1,0 +1,5 @@
+# Dev-machine tooling (not needed on the Pi). Install with:
+#   pip install -r requirements-dev.txt
+-r requirements.txt
+mypy>=1.8
+types-requests

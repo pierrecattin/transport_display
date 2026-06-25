@@ -15,11 +15,11 @@ from src.layout import FrameComposer, StationGroup  # noqa: E402
 from src.transport import Departure  # noqa: E402
 
 
-def _dep(number, label):
+def _dep(number: str, label: str) -> Departure:
     return Departure(number=number, label=label, departure_ts=0)
 
 
-def main():
+def main() -> None:
     out = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("preview.png")
     scale = int(sys.argv[2]) if len(sys.argv) > 2 else 8
 

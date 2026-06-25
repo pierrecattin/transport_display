@@ -70,13 +70,14 @@ def load_pil_font(bdf_path: Path) -> ImageFont.ImageFont:
 
 
 def text_w(font: ImageFont.ImageFont, text: str) -> int:
-    return int(math.ceil(font.getlength(text)))
+    # Pillow's stubs leave the bitmap-font (ImageFont.ImageFont) methods untyped.
+    return int(math.ceil(font.getlength(text)))  # type: ignore[no-untyped-call]
 
 
 def font_height(font: ImageFont.ImageFont) -> int:
     """Cell height of a bitmap font (PIL bitmap fonts have no getmetrics())."""
-    bbox = font.getbbox("Agjy0123")
-    return bbox[3] - bbox[1]
+    bbox = font.getbbox("Agjy0123")  # type: ignore[no-untyped-call]
+    return int(bbox[3] - bbox[1])
 
 
 def fit_text(font: ImageFont.ImageFont, text: str, max_w: int) -> str:
@@ -148,7 +149,16 @@ class FrameComposer:
         self._offsets = {k: v for k, v in self._offsets.items() if k in seen}
         return img
 
-    def _draw_row(self, img, draw, y, dep: Departure, mins: int, key: str, now: float) -> None:
+    def _draw_row(
+        self,
+        img: Image.Image,
+        draw: ImageDraw.ImageDraw,
+        y: int,
+        dep: Departure,
+        mins: int,
+        key: str,
+        now: float,
+    ) -> None:
         # Bus number, left, uncropped.
         draw.text((0, y), dep.number, font=self.body_font, fill=COL_NUMBER)
 
@@ -160,7 +170,16 @@ class FrameComposer:
         # Destination, clipped to its column, scrolling if too wide.
         self._draw_dest(img, draw, self.dest_x0, y, dep.label, key, now)
 
-    def _draw_dest(self, img, draw, x0: int, y: int, text: str, key: str, now: float) -> None:
+    def _draw_dest(
+        self,
+        img: Image.Image,
+        draw: ImageDraw.ImageDraw,
+        x0: int,
+        y: int,
+        text: str,
+        key: str,
+        now: float,
+    ) -> None:
         w = text_w(self.body_font, text)
         col_w = self.dest_col_w
         if w <= col_w:

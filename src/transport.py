@@ -12,6 +12,7 @@ from __future__ import annotations
 import logging
 import math
 from dataclasses import dataclass
+from typing import Any
 
 import requests
 
@@ -32,18 +33,15 @@ class Departure:
     departure_ts: int  # planned departure, unix seconds
 
 
-def fetch_station(station_id: str, limit: int) -> list[dict] | None:
+def fetch_station(station_id: str, limit: int) -> list[dict[str, Any]] | None:
     """Fetch the raw stationboard list for ``station_id``.
 
     Returns the list of entries, or ``None`` on any network/HTTP/parse error
     (callers keep their last good data rather than crashing).
     """
+    params: dict[str, str | int] = {"id": station_id, "limit": limit}
     try:
-        resp = requests.get(
-            API_URL,
-            params={"id": station_id, "limit": limit},
-            timeout=REQUEST_TIMEOUT,
-        )
+        resp = requests.get(API_URL, params=params, timeout=REQUEST_TIMEOUT)
         resp.raise_for_status()
         data = resp.json()
     except (requests.RequestException, ValueError) as exc:
@@ -57,7 +55,9 @@ def fetch_station(station_id: str, limit: int) -> list[dict] | None:
     return board
 
 
-def parse_departures(board: list[dict], connections: list[Connection]) -> list[Departure]:
+def parse_departures(
+    board: list[dict[str, Any]], connections: list[Connection]
+) -> list[Departure]:
     """Filter a raw stationboard to the configured (number, destination) pairs.
 
     Matching is on ``number`` + ``to`` (the line's terminal in the desired
@@ -74,6 +74,8 @@ def parse_departures(board: list[dict], connections: list[Connection]) -> list[D
             continue
         number = entry.get("number")
         to = entry.get("to")
+        if not isinstance(number, str) or not isinstance(to, str):
+            continue
         label = wanted.get((number, to))
         if label is None:
             continue
@@ -89,7 +91,7 @@ def parse_departures(board: list[dict], connections: list[Connection]) -> list[D
     return out
 
 
-def station_name(board: list[dict]) -> str | None:
+def station_name(board: list[dict[str, Any]]) -> str | None:
     """Best-effort station name from a raw board (``stop.station.name``)."""
     for entry in board:
         if not isinstance(entry, dict):

@@ -60,6 +60,9 @@ a lock) holds raw `Departure`s → 30fps render loop builds `StationGroup`s
   `git push` then `git pull` on the Pi (see README). SSH:
   `ssh -i "$env:USERPROFILE\.ssh\kaeferpi" pierre@kaeferpi.local`.
 - Tests: `python -m pytest tests/` (runs without hardware).
+- Type-check: `python -m mypy` (strict; config in `mypy.ini`). Install dev tooling
+  with `pip install -r requirements-dev.txt`. `rgbmatrix` is treated as untyped
+  (no stubs, Pi-only), so `renderer.py` still type-checks off-Pi.
 - Preview the layout without hardware: `python tools/preview.py preview.png 8`.
 - Panel is driven with `adafruit-hat-pwm`, `gpio_slowdown=2`, `rows=64 cols=128`;
   the Pi has core 3 isolated (`isolcpus=3`) and onboard sound disabled.

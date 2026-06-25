@@ -15,6 +15,8 @@ import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
+from types import FrameType
+from typing import TYPE_CHECKING
 
 from .config import Config, Station, load_config
 from .transport import (
@@ -24,6 +26,9 @@ from .transport import (
     station_name,
     visible_departures,
 )
+
+if TYPE_CHECKING:
+    from .layout import StationGroup
 
 log = logging.getLogger("transport_display")
 
@@ -86,10 +91,15 @@ def _header_name(station: Station, st: StationState) -> str:
     return station.id
 
 
-def _build_groups(config: Config, state: dict[str, StationState], lock, now: float):
+def _build_groups(
+    config: Config,
+    state: dict[str, StationState],
+    lock: threading.Lock,
+    now: float,
+) -> list[StationGroup]:
     from .layout import StationGroup  # local import keeps rgbmatrix off the dev path
 
-    groups = []
+    groups: list[StationGroup] = []
     with lock:
         for station in config.stations:
             st = state[station.id]
@@ -126,7 +136,7 @@ def main(argv: list[str]) -> int:
 
     stopping = threading.Event()
 
-    def _handle_signal(signum, _frame):
+    def _handle_signal(signum: int, _frame: FrameType | None) -> None:
         log.info("Received signal %s, shutting down", signum)
         stopping.set()
 

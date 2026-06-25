@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import logging
 
-from rgbmatrix import RGBMatrix, RGBMatrixOptions  # type: ignore
+from rgbmatrix import RGBMatrix, RGBMatrixOptions
 
 from .config import Config
 from .layout import FrameComposer, StationGroup
