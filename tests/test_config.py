@@ -31,7 +31,7 @@ def test_display_defaults_and_overrides() -> None:
 def test_missing_label_falls_back_to_stripped_city(tmp_path: Path) -> None:
     p = tmp_path / "c.json"
     p.write_text(json.dumps({
-        "stations": [{"id": "1", "min_time": 0,
+        "stations": [{"id": "1", "display_name": "Somewhere", "min_time": 0,
                       "connections": [{"number": "9", "destination": "Zürich, Nowhere"}]}],
         "destination_labels": {},
     }), encoding="utf-8")

@@ -8,7 +8,6 @@ from src.config import Connection
 from src.transport import (
     minutes_until,
     parse_departures,
-    station_name,
     visible_departures,
 )
 
@@ -34,11 +33,6 @@ def test_minutes_until_floors_and_clamps() -> None:
     assert minutes_until(BASE + 180, BASE) == 3
     assert minutes_until(BASE + 59, BASE) == 0  # within final minute -> 0
     assert minutes_until(BASE - 30, BASE) == 0  # never negative
-
-
-def test_station_name() -> None:
-    board = _board()
-    assert station_name(board) == "Zürich, Neuaffoltern"
 
 
 def test_parse_matches_number_and_direction_only() -> None:

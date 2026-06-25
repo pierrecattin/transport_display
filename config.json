@@ -2,6 +2,7 @@
     "stations": [
         {
             "id": "8591041",
+            "display_name": "Bucheggplatz",
             "min_time": 2,
             "connections": [
                 {
@@ -12,6 +13,7 @@
         },
         {
             "id": "8591285",
+            "display_name": "Neuaffoltern",
             "min_time": 5,
             "connections": [
                 {

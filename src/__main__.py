@@ -18,12 +18,11 @@ from pathlib import Path
 from types import FrameType
 from typing import TYPE_CHECKING
 
-from .config import Config, Station, load_config
+from .config import Config, load_config
 from .transport import (
     Departure,
     fetch_station,
     parse_departures,
-    station_name,
     visible_departures,
 )
 
@@ -42,7 +41,6 @@ class StationState:
     """Latest known data for one station (shared between threads)."""
 
     departures: list[Departure] = field(default_factory=list)
-    api_name: str | None = None
     last_ok: float | None = None  # wall time of last successful fetch
 
 
@@ -72,23 +70,11 @@ class Poller(threading.Thread):
             if board is None:
                 continue  # keep last good data
             deps = parse_departures(board, station.connections)
-            name = station_name(board)
             with self._lock:
                 st = self._state[station.id]
                 st.departures = deps
-                if name:
-                    st.api_name = name
                 st.last_ok = time.time()
-            log.info("Polled %s (%s): %d matching", station.id, name, len(deps))
-
-
-def _header_name(station: Station, st: StationState) -> str:
-    """Header label: config override, else API name, else the id."""
-    if station.name:
-        return station.name
-    if st.api_name:
-        return st.api_name
-    return station.id
+            log.info("Polled %s (%s): %d matching", station.id, station.display_name, len(deps))
 
 
 def _build_groups(
@@ -107,7 +93,7 @@ def _build_groups(
             groups.append(
                 StationGroup(
                     station_id=station.id,
-                    name=_header_name(station, st),
+                    name=station.display_name,
                     departures=vis,
                 )
             )

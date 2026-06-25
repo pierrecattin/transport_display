@@ -91,17 +91,6 @@ def parse_departures(
     return out
 
 
-def station_name(board: list[dict[str, Any]]) -> str | None:
-    """Best-effort station name from a raw board (``stop.station.name``)."""
-    for entry in board:
-        if not isinstance(entry, dict):
-            continue
-        name = (entry.get("stop") or {}).get("station", {}).get("name")
-        if isinstance(name, str) and name:
-            return name
-    return None
-
-
 def fetch_and_parse(station: Station, limit: int) -> list[Departure] | None:
     """Fetch + parse one station. ``None`` on fetch failure."""
     board = fetch_station(station.id, limit)

@@ -59,9 +59,9 @@ class Connection:
 @dataclass
 class Station:
     id: str
+    display_name: str
     min_time: int
     connections: list[Connection]
-    name: str | None = None  # optional header override; else API station name
 
 
 @dataclass
@@ -135,9 +135,9 @@ def load_config(path: str | Path) -> Config:
         if not isinstance(min_time, int) or isinstance(min_time, bool) or min_time < 0:
             raise ConfigError(f"{where}.min_time must be a non-negative integer")
 
-        name = s.get("name")
-        if name is not None and not isinstance(name, str):
-            raise ConfigError(f"{where}.name must be a string if present")
+        display_name = s.get("display_name")
+        if not isinstance(display_name, str):
+            raise ConfigError(f"{where}.display_name must be a string")
 
         raw_conns = s.get("connections")
         if not isinstance(raw_conns, list) or not raw_conns:
@@ -166,7 +166,7 @@ def load_config(path: str | Path) -> Config:
                 )
             conns.append(Connection(number=number, destination=destination, label=label))
 
-        stations.append(Station(id=sid, min_time=min_time, connections=conns, name=name))
+        stations.append(Station(id=sid, display_name=display_name, min_time=min_time, connections=conns))
 
     display = _parse_display(raw.get("display", {}))
     return Config(stations=stations, destination_labels=labels, display=display)

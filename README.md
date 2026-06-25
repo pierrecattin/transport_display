@@ -59,9 +59,9 @@ tools/preview.py            # render the layout to a PNG without hardware
 {
   "stations": [
     {
-      "id": "8591285",          // transport.opendata.ch station id
-      "name": "Neuaffoltern",   // optional header override (else API station name)
-      "min_time": 5,            // hide departures sooner than this many minutes
+      "id": "8591285",                  // transport.opendata.ch station id
+      "display_name": "Neuaffoltern",   // required header label drawn on screen
+      "min_time": 5,                    // hide departures sooner than this many minutes
       "connections": [
         // match on bus number + direction (the API "to"/terminal field)
         { "number": "32", "destination": "Zürich, Strassenverkehrsamt" }
