@@ -35,6 +35,11 @@ body {
   gap: 16px;
 }
 
+.topbar-actions {
+  display: flex;
+  gap: 8px;
+}
+
 h1 {
   font-size: 20px;
   margin: 4px 0 12px;

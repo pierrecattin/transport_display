@@ -109,10 +109,12 @@ http://kaeferpi.local:8080
 ```
 
 "Save & Apply" validates the config, writes `config.json` (keeping a `.bak`), and
-restarts the display service so the change takes effect. There is **no
+restarts the display service so the change takes effect. The header also has a
+**Turn screen off / on** button that stops (or starts) the display service —
+stopping blanks the panel and halts the API polling. There is **no
 authentication** — it's intended for a trusted home LAN only. The backend runs
-unprivileged and is allowed (via a narrow `sudoers` rule) to restart *only* the
-display service.
+unprivileged and is allowed (via a narrow `sudoers` rule) to restart/start/stop
+*only* the display service.
 
 ## First-time setup on the Pi
 

@@ -115,9 +115,10 @@ systemctl restart "${SERVICE_NAME}"
 echo "    ${SERVICE_NAME} enabled and (re)started"
 
 echo "==> [8/8] Installing the config web UI (sudoers rule + service)"
-# Let the unprivileged web UI restart ONLY the display service (nothing else).
+# Let the unprivileged web UI restart/start/stop ONLY the display service
+# (nothing else). start/stop back the web UI's on/off power button.
 SUDOERS_FILE="/etc/sudoers.d/transport_display_config"
-SUDOERS_LINE="${SERVICE_USER} ALL=(root) NOPASSWD: /usr/bin/systemctl restart ${SERVICE_NAME}"
+SUDOERS_LINE="${SERVICE_USER} ALL=(root) NOPASSWD: /usr/bin/systemctl restart ${SERVICE_NAME}, /usr/bin/systemctl start ${SERVICE_NAME}, /usr/bin/systemctl stop ${SERVICE_NAME}"
 TMP_SUDOERS="$(mktemp)"
 printf '%s\n' "${SUDOERS_LINE}" > "${TMP_SUDOERS}"
 if visudo -cf "${TMP_SUDOERS}" >/dev/null; then

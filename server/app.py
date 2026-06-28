@@ -10,6 +10,8 @@ Endpoints (all under ``/api``):
 * ``POST /preview`` – render a (possibly unsaved) config to a PNG, no hardware.
 * ``GET  /status``  – whether the display service is active.
 * ``POST /restart`` – restart the display service.
+* ``POST /power``   – start/stop the display service (``{"on": bool}``); stopping
+  blanks the panel and halts the API polling.
 
 The built React app under ``web/dist`` is mounted at ``/`` when present.
 """
@@ -96,6 +98,16 @@ def _restart_display() -> dict[str, Any]:
     return {"ok": ok, "detail": detail}
 
 
+def _set_power(on: bool) -> dict[str, Any]:
+    """Start or stop the display service. Stopping (SIGTERM) makes the display
+    blank the panel and stop polling the API; ``Restart=always`` does not fight
+    an explicit ``stop``."""
+    if NO_RESTART:
+        return {"ok": False, "detail": "power control disabled (dev)"}
+    ok, detail = _systemctl(["start" if on else "stop", DISPLAY_SERVICE], sudo=True)
+    return {"ok": ok, "detail": detail}
+
+
 def _rgb_to_hex(rgb: tuple[int, int, int]) -> str:
     return "#{:02X}{:02X}{:02X}".format(*rgb)
 
@@ -156,6 +168,12 @@ def get_status() -> dict[str, Any]:
 @app.post("/api/restart")
 def post_restart() -> dict[str, Any]:
     return _restart_display()
+
+
+@app.post("/api/power")
+def post_power(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
+    """Turn the display on (start) or off (stop)."""
+    return _set_power(bool(payload.get("on")))
 
 
 def _sample_groups(cfg: Config) -> list[StationGroup]:

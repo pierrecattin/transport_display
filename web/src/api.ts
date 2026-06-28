@@ -36,6 +36,29 @@ export async function putConfig(cfg: Config): Promise<SaveResult> {
   return (await r.json()) as SaveResult;
 }
 
+export interface Status {
+  active: boolean;
+  detail: string;
+}
+
+export const getStatus = (): Promise<Status> => getJson<Status>("/status");
+
+export interface PowerResult {
+  ok: boolean;
+  detail: string;
+}
+
+// Turn the display on (start) or off (stop) the systemd service.
+export async function setPower(on: boolean): Promise<PowerResult> {
+  const r = await fetch(API + "/power", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ on }),
+  });
+  if (!r.ok) throw new Error(await errorDetail(r));
+  return (await r.json()) as PowerResult;
+}
+
 // Returns an object URL for the rendered PNG; caller revokes it.
 export async function fetchPreview(cfg: Config, scale = 4): Promise<string> {
   const r = await fetch(`${API}/preview?scale=${scale}`, {

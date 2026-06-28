@@ -62,6 +62,10 @@ a lock) holds raw `Departure`s → 30fps render loop builds `StationGroup`s
   several `display` knobs only apply at `RGBMatrix`/`FrameComposer` construction,
   so the web UI applies edits by rewriting `config.json` + `systemctl restart
   transport_display.service` (via a narrow `sudoers` rule). There's no live reload.
+  That same `sudoers` rule also allows `start`/`stop` for the web UI's screen
+  on/off button (`POST /api/power`); stopping sends SIGTERM, which makes
+  `__main__.py` `renderer.clear()` the panel and stop polling. Widening it means
+  editing the `SUDOERS_LINE` in `setup_pi.sh` and re-running it on the Pi.
 - **`web/dist/` is committed** (the Pi has no Node). Rebuild with `cd web && npm
   run build` and commit the output whenever you change the UI.
 - **`setup_pi.sh` must stay LF** (enforced in `.gitattributes`, which also covers
