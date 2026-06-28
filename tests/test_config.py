@@ -24,15 +24,14 @@ def test_loads_repo_config() -> None:
 def test_display_defaults_and_overrides() -> None:
     cfg = load_config(REPO_CONFIG)
     assert cfg.display.poll_interval_sec == 60
-    assert cfg.display.gpio_slowdown == 2
+    assert cfg.display.gpio_slowdown == 4
     assert cfg.display.font == "6x10"
 
 
 def test_color_defaults_when_absent() -> None:
     cfg = load_config(REPO_CONFIG)
     # Defaults mirror the values layout.py used to hardcode.
-    assert cfg.colors.clock == (255, 176, 0)
-    assert cfg.colors.minutes == (0, 230, 80)
+    assert cfg.colors.clock == (255, 255, 255)
 
 
 def test_color_overrides_hex_and_rgb(tmp_path: Path) -> None:

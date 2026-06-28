@@ -41,18 +41,18 @@
         "brightness": 60,
         "poll_interval_sec": 60,
         "api_limit": 30,
-        "scroll_px_per_sec": 20,
+        "scroll_px_per_sec": 10,
         "font": "6x10",
         "header_font": "5x7",
-        "gpio_slowdown": 2,
+        "gpio_slowdown": 4,
         "pwm_bits": 11,
         "pwm_lsb_nanoseconds": 130
     },
     "colors": {
-        "clock": "#634B18",
-        "header": "#00C8FF",
-        "number": "#FFDC00",
-        "dest": "#EBEBEB",
-        "minutes": "#00E650"
+        "clock": "#FFFFFF",
+        "header": "#001361",
+        "number": "#FFFFFF",
+        "dest": "#9AAEFE",
+        "minutes": "#FFFFFF"
     }
 }
