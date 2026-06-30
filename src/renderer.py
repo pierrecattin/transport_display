@@ -40,8 +40,8 @@ class Renderer:
         options.drop_privileges = True  # start as root, drop after GPIO init
 
         # Load fonts BEFORE constructing RGBMatrix: RGBMatrix() drops privileges
-        # to user 'daemon', which can't read the .bdf files under /home/pierre
-        # (home is not world-traversable on Bookworm/trixie).
+        # to user 'daemon', which can't read the .bdf files under the service
+        # user's home (home is not world-traversable on Bookworm/trixie).
         self.composer = FrameComposer(
             d.font, d.header_font, d.scroll_px_per_sec, config.colors
         )

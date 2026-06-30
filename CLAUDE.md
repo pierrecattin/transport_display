@@ -74,8 +74,7 @@ a lock) holds raw `Departure`s → 30fps render loop builds `StationGroup`s
 ## Dev workflow
 
 - You run on the **dev machine, not the Pi**. Never hand-edit on the Pi; deploy by
-  `git push` then `git pull` on the Pi (see README). SSH:
-  `ssh -i "$env:USERPROFILE\.ssh\kaeferpi" pierre@kaeferpi.local`.
+  `git push` then `git pull` on the Pi (see README).
 - Tests: `python -m pytest tests/` (runs without hardware).
 - Type-check: `python -m mypy` (strict; config in `mypy.ini`). Install dev tooling
   with `pip install -r requirements-dev.txt`. `rgbmatrix` is treated as untyped

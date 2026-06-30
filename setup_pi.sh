@@ -15,7 +15,10 @@ SERVICE_NAME="transport_display.service"
 VENV="${SCRIPT_DIR}/env"  # rgbmatrix bindings live here (see step 3)
 CONFIG_SERVICE_NAME="transport_display_config.service"
 WEBENV="${SCRIPT_DIR}/webenv"  # FastAPI/uvicorn for the config web UI (step 4)
-SERVICE_USER="pierre"          # unprivileged user the config web UI runs as
+# Unprivileged user the config web UI runs as. Defaults to whoever invoked
+# `sudo` (SUDO_USER), falling back to "pi". Override for an unusual setup with:
+#     SERVICE_USER=alice sudo -E bash setup_pi.sh
+SERVICE_USER="${SERVICE_USER:-${SUDO_USER:-pi}}"
 
 if [[ "${EUID}" -ne 0 ]]; then
     echo "Please run as root:  sudo bash setup_pi.sh" >&2

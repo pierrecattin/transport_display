@@ -7,11 +7,12 @@ Wants=network-online.target
 Type=simple
 # Runs unprivileged; restarting the display service is allowed via a narrow
 # sudoers drop-in installed by setup_pi.sh (see /etc/sudoers.d/).
-User=pierre
-# WorkingDirectory and ExecStart are rewritten by setup_pi.sh to match where the
-# repo is cloned and its web venv (webenv/) that holds FastAPI/uvicorn.
-WorkingDirectory=/home/pierre/transport_display
-ExecStart=/home/pierre/transport_display/webenv/bin/python3 -m server
+# User, WorkingDirectory, and ExecStart are placeholders rewritten by
+# setup_pi.sh to match the chosen SERVICE_USER, where the repo is cloned, and
+# its web venv (webenv/) that holds FastAPI/uvicorn.
+User=pi
+WorkingDirectory=/home/pi/transport_display
+ExecStart=/home/pi/transport_display/webenv/bin/python3 -m server
 Restart=always
 RestartSec=5
 

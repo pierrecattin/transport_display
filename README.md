@@ -1,6 +1,6 @@
 # Bus departure LED matrix display
 
-A headless Raspberry Pi 3B drives a **128×64 HUB75E** RGB LED matrix (via an
+A Raspberry Pi drives a **128×64 HUB75E** RGB LED matrix (via an
 **Adafruit RGB Matrix Bonnet #3211**) to show the next bus departures for several
 Zürich VBZ stops, using live data from
 [`transport.opendata.ch`](https://transport.opendata.ch).
@@ -24,17 +24,23 @@ Neuaffolt
 - The API is polled once per minute; the minute countdown and `min_time` filter are
   recomputed every frame, so the board stays live between polls.
 
-## Hardware
+## Hardware needed
 
-- Raspberry Pi 3B, Raspberry Pi OS Lite (headless)
-- 128×64 P2.5 1/32-scan RGB matrix (HUB75E)
-- Adafruit RGB Matrix Bonnet #3211 — **E and pin 8 bridged** (large-panel
-  addressing) and **GPIO4↔GPIO18 bridged** (PWM "quality" mod, needs sound off)
-- 5V 10A supply into the bonnet's barrel jack
+- Raspberry Pi (I use a 3B with Raspberry Pi OS Lite)
+- 128×64 P2.5 1/32-scan RGB matrix (HUB75E). E.g.
+  [this one](https://aliexpress.com/item/1005007743220823.html)
+- Adafruit RGB Matrix Bonnet 3211.
+- 5V 10A supply into the bonnet's barrel jack. For example [this one](https://www.digikey.de/en/products/detail/adafruit-industries-llc/658/5774322?so=98505828&content=productdetail_DE).
 
-The panel is driven with `--led-rows=64 --led-cols=128
---led-gpio-mapping=adafruit-hat-pwm --led-slowdown-gpio=2` (set in code via
-`RGBMatrixOptions`).
+On the Adafruit bonnet, you need to solder the E and 8 pin (large-panel addressing) and bridge the GPIO4 and GPIO18 (PWM "quality" mod, needs sound off).
+
+## How to find the station IDs and connection names
+1. Find the x an y coordinates of a point close to the station (e.g. using Google maps)
+2. Replace the coordinates in this URL http://transport.opendata.ch/v1/locations?x=8.539224&y=47.369937 and look for the station ID (e.g. Paradeplatz is 8591299)
+3. In order to find the connections from a given station, use http://transport.opendata.ch/v1/stationboard?id=8591299
+
+[`transport.opendata API documention`](https://transport.opendata.ch).
+
 
 ## Layout of this repo
 
@@ -105,7 +111,7 @@ labels, the `display` tunables, the fonts, and the five render colours — with 
 of `setup_pi.sh`), open:
 
 ```
-http://kaeferpi.local:8080
+http://[IP_RASPBERRY]:8080
 ```
 
 "Save & Apply" validates the config, writes `config.json` (keeping a `.bak`), and
@@ -119,7 +125,7 @@ unprivileged and is allowed (via a narrow `sudoers` rule) to restart/start/stop
 ## First-time setup on the Pi
 
 ```bash
-# on the Pi (cloned to /home/pierre/transport_display)
+# on the Pi (cloned to /home/[USERNAME_RASPBERRY]/transport_display)
 cd ~/transport_display
 sudo bash setup_pi.sh
 sudo reboot
@@ -161,7 +167,7 @@ git commit -am "…"
 git push
 
 # Pi
-ssh pierre@kaeferpi.local 'cd ~/transport_display && git pull && sudo systemctl restart transport_display'
+ssh [USERNAME_RASPBERRY]@[IP_RASPBERRY] 'cd ~/transport_display && git pull && sudo systemctl restart transport_display'
 ```
 
 Run the tests and preview the layout on the dev machine (no hardware needed):
@@ -199,5 +205,5 @@ cd web; npm run dev                                          # terminal 2
 
 `TRANSPORT_DISPLAY_NO_RESTART=1` stops the dev backend trying to restart a
 (non-existent) service when you save. Set `VITE_API_TARGET`
-(e.g. `http://kaeferpi.local:8080`) to point `npm run dev` at the Pi instead of a
+(e.g. `http://[IP_RASPBERRY]:8080`) to point `npm run dev` at the Pi instead of a
 local backend.
