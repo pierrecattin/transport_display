@@ -207,3 +207,8 @@ cd web; npm run dev                                          # terminal 2
 (non-existent) service when you save. Set `VITE_API_TARGET`
 (e.g. `http://[IP_RASPBERRY]:8080`) to point `npm run dev` at the Pi instead of a
 local backend.
+
+## License
+
+Released under the [MIT License](LICENSE). This software is provided "as is",
+without warranty of any kind and with no guarantee — use it at your own risk.
