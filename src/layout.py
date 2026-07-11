@@ -15,6 +15,7 @@ Layout (grouped by station, soonest departures that fit):
 
 from __future__ import annotations
 
+import getpass
 import math
 import tempfile
 from pathlib import Path
@@ -28,7 +29,12 @@ PANEL_W = 128
 PANEL_H = 64
 
 FONTS_DIR = Path(__file__).resolve().parent.parent / "fonts"
-_FONT_CACHE_DIR = Path(tempfile.gettempdir()) / "transport_display_fonts"
+# Per-user cache: on the Pi the display service compiles fonts as root while
+# the web UI's preview runs as an unprivileged user; a shared dir would leave
+# the latter unable to write newly selected fonts (root-owned, mode 755).
+_FONT_CACHE_DIR = Path(tempfile.gettempdir()) / (
+    f"transport_display_fonts_{getpass.getuser()}"
+)
 
 # Render colours live in the config now (src.config.Colors); the defaults there
 # match what this module used to hardcode.
@@ -60,7 +66,8 @@ def load_pil_font(bdf_path: Path) -> ImageFont.ImageFont:
     _FONT_CACHE_DIR.mkdir(parents=True, exist_ok=True)
     stem = bdf_path.stem
     pil_path = _FONT_CACHE_DIR / f"{stem}.pil"
-    if not pil_path.exists():
+    # Recompile when missing or when the .bdf is newer than the cached compile.
+    if not pil_path.exists() or pil_path.stat().st_mtime < bdf_path.stat().st_mtime:
         with open(bdf_path, "rb") as fh:
             BdfFontFile.BdfFontFile(fh).save(str(_FONT_CACHE_DIR / stem))
     return ImageFont.load(str(pil_path))
