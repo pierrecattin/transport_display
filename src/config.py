@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TypedDict
@@ -114,13 +115,13 @@ RGB = tuple[int, int, int]
 
 def _hex_to_rgb(value: str) -> RGB:
     """Parse ``#RRGGBB`` (the leading ``#`` is optional) into an (r, g, b)."""
-    h = value.lstrip("#")
-    if len(h) != 6:
+    # Strict regex: int(x, 16) alone would also accept signs/whitespace,
+    # letting oddities like "#+1+2+3" slip through as (1, 2, 3).
+    m = re.fullmatch(r"#?([0-9a-fA-F]{6})", value)
+    if m is None:
         raise ValueError(f"expected #RRGGBB, got {value!r}")
-    try:
-        r, g, b = (int(h[i : i + 2], 16) for i in (0, 2, 4))
-    except ValueError as exc:
-        raise ValueError(f"invalid hex colour {value!r}") from exc
+    h = m.group(1)
+    r, g, b = (int(h[i : i + 2], 16) for i in (0, 2, 4))
     return (r, g, b)
 
 

@@ -131,14 +131,16 @@ def test_color_overrides_hex_and_rgb(tmp_path: Path) -> None:
 
 
 def test_rejects_bad_hex_color(tmp_path: Path) -> None:
-    p = _write(tmp_path, {
-        "stations": [{"id": "1", "display_name": "S", "min_time": 0,
-                      "connections": [{"number": "9", "destination": "X"}]}],
-        "destination_labels": {},
-        "colors": {"clock": "#ZZZZZZ"},
-    })
-    with pytest.raises(ConfigError):
-        load_config(p)
+    # "#+1+2+3" and " FF0000" would survive a naive int(x, 16) parse.
+    for bad in ("#ZZZZZZ", "#+1+2+3", " FF0000", "#FF00", ""):
+        p = _write(tmp_path, {
+            "stations": [{"id": "1", "display_name": "S", "min_time": 0,
+                          "connections": [{"number": "9", "destination": "X"}]}],
+            "destination_labels": {},
+            "colors": {"clock": bad},
+        })
+        with pytest.raises(ConfigError):
+            load_config(p)
 
 
 def test_missing_label_falls_back_to_stripped_city(tmp_path: Path) -> None:
