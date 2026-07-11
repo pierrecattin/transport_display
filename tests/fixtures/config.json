@@ -1,0 +1,58 @@
+{
+    "stations": [
+        {
+            "id": "8591041",
+            "display_name": "Althoos",
+            "min_time": 2,
+            "connections": [
+                {
+                    "number": "40",
+                    "destination": "Zürich, Bucheggplatz"
+                }
+            ]
+        },
+        {
+            "id": "8591285",
+            "display_name": "Neuaffoltern",
+            "min_time": 5,
+            "connections": [
+                {
+                    "number": "32",
+                    "destination": "Zürich, Strassenverkehrsamt"
+                },
+                {
+                    "number": "61",
+                    "destination": "Wallisellen, Glatt (Bus)"
+                },
+                {
+                    "number": "62",
+                    "destination": "Zürich, Schwamendingerplatz"
+                }
+            ]
+        }
+    ],
+    "destination_labels": {
+        "Zürich, Bucheggplatz": "Bucheggplatz",
+        "Zürich, Strassenverkehrsamt": "Strassenverkehrsamt",
+        "Wallisellen, Glatt (Bus)": "Wallisellen",
+        "Zürich, Schwamendingerplatz": "Schwamendingerplatz"
+    },
+    "display": {
+        "brightness": 60,
+        "poll_interval_sec": 60,
+        "api_limit": 30,
+        "scroll_px_per_sec": 10,
+        "font": "6x10",
+        "header_font": "5x7",
+        "gpio_slowdown": 4,
+        "pwm_bits": 11,
+        "pwm_lsb_nanoseconds": 130
+    },
+    "colors": {
+        "clock": "#FFFFFF",
+        "header": "#001361",
+        "number": "#FFFFFF",
+        "dest": "#9AAEFE",
+        "minutes": "#FFFFFF"
+    }
+}
