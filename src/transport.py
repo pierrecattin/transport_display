@@ -23,8 +23,11 @@ from .config import Connection, Station
 
 log = logging.getLogger(__name__)
 
-API_URL = "http://transport.opendata.ch/v1/stationboard"
+API_URL = "https://transport.opendata.ch/v1/stationboard"
 REQUEST_TIMEOUT = 10  # seconds
+
+# Shared session: connection reuse across the once-a-minute polls.
+_session = requests.Session()
 
 
 @dataclass(frozen=True)
@@ -45,7 +48,7 @@ def fetch_station(station_id: str, limit: int) -> list[dict[str, Any]] | None:
     """
     params: dict[str, str | int] = {"id": station_id, "limit": limit}
     try:
-        resp = requests.get(API_URL, params=params, timeout=REQUEST_TIMEOUT)
+        resp = _session.get(API_URL, params=params, timeout=REQUEST_TIMEOUT)
         resp.raise_for_status()
         data = resp.json()
     except (requests.RequestException, ValueError) as exc:
