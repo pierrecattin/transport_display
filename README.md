@@ -16,8 +16,9 @@ Neuaffolt
 ```
 
 - Bus **number** (left, uncropped), **destination** label (middle, clipped to its
-  column and scrolling horizontally when too long), **minutes** until the planned
-  departure (right, `N'`).
+  column and scrolling horizontally when too long), **minutes** until departure
+  (right, `N'`) — using the API's realtime estimate when it provides one, the
+  planned time otherwise.
 - **Clock** (`HH:MM`) top-right.
 - Departures leaving sooner than a per-station `min_time` are hidden.
 - Only the soonest departures that fit on the panel are shown.

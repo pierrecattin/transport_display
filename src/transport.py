@@ -1,10 +1,12 @@
 """transport.opendata.ch client, parsing and per-station filtering.
 
 We fetch a station board, keep only the (line number, direction) pairs the
-config asks for, and store the *planned* departure timestamp for each. The
-minutes-until-departure countdown and the ``min_time`` cut-off are recomputed
-at render time from those timestamps (see :func:`visible_departures`), so the
-board stays live between the once-a-minute polls.
+config asks for, and store the best-known departure timestamp for each — the
+realtime estimate (``prognosis.departure`` / ``delay``) when the API provides
+one, the planned time otherwise. The minutes-until-departure countdown and the
+``min_time`` cut-off are recomputed at render time from those timestamps (see
+:func:`visible_departures`), so the board stays live between the once-a-minute
+polls.
 """
 
 from __future__ import annotations
@@ -12,6 +14,7 @@ from __future__ import annotations
 import logging
 import math
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any
 
 import requests
@@ -30,7 +33,7 @@ class Departure:
 
     number: str  # bus line, e.g. "32"
     label: str  # short on-screen destination label
-    departure_ts: int  # planned departure, unix seconds
+    departure_ts: int  # best-known departure (realtime if available), unix seconds
 
 
 def fetch_station(station_id: str, limit: int) -> list[dict[str, Any]] | None:
@@ -55,13 +58,39 @@ def fetch_station(station_id: str, limit: int) -> list[dict[str, Any]] | None:
     return board
 
 
+def _effective_departure_ts(stop: dict[str, Any]) -> int | None:
+    """Best-known departure time for a stationboard ``stop`` object.
+
+    Prefers the realtime estimate — ``prognosis.departure`` (ISO 8601), then
+    the ``delay`` in whole minutes on top of the planned time — and falls back
+    to the planned ``departureTimestamp``. ``None`` if no usable time at all.
+    """
+    planned = stop.get("departureTimestamp")
+    if isinstance(planned, bool) or not isinstance(planned, (int, float)):
+        return None
+
+    prognosis = stop.get("prognosis")
+    estimate = prognosis.get("departure") if isinstance(prognosis, dict) else None
+    if isinstance(estimate, str):
+        try:
+            return int(datetime.fromisoformat(estimate).timestamp())
+        except ValueError:
+            log.debug("Unparseable prognosis.departure %r", estimate)
+
+    delay = stop.get("delay")
+    if isinstance(delay, int) and not isinstance(delay, bool):
+        return int(planned) + delay * 60
+
+    return int(planned)
+
+
 def parse_departures(
     board: list[dict[str, Any]], connections: list[Connection]
 ) -> list[Departure]:
     """Filter a raw stationboard to the configured (number, destination) pairs.
 
     Matching is on ``number`` + ``to`` (the line's terminal in the desired
-    direction). Results are sorted ascending by planned departure.
+    direction). Results are sorted ascending by best-known departure time.
     """
     # Map (number, destination) -> label for O(1) matching.
     wanted: dict[tuple[str, str], str] = {
@@ -80,12 +109,12 @@ def parse_departures(
         if label is None:
             continue
 
-        stop = entry.get("stop") or {}
-        ts = stop.get("departureTimestamp")
-        if not isinstance(ts, (int, float)):
+        stop = entry.get("stop")
+        ts = _effective_departure_ts(stop) if isinstance(stop, dict) else None
+        if ts is None:
             continue
 
-        out.append(Departure(number=number, label=label, departure_ts=int(ts)))
+        out.append(Departure(number=number, label=label, departure_ts=ts))
 
     out.sort(key=lambda d: d.departure_ts)
     return out

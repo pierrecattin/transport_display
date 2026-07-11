@@ -7,7 +7,7 @@
     },
     {
       "name": "009224", "category": "B", "number": "32", "to": "Zürich, Strassenverkehrsamt",
-      "stop": { "station": { "id": "8591285", "name": "Zürich, Neuaffoltern" }, "departureTimestamp": 1782198180 }
+      "stop": { "station": { "id": "8591285", "name": "Zürich, Neuaffoltern" }, "departureTimestamp": 1782198180, "delay": 1 }
     },
     {
       "name": "009799", "category": "B", "number": "61", "to": "Zürich, Strassenverkehrsamt",
@@ -15,7 +15,7 @@
     },
     {
       "name": "010106", "category": "B", "number": "62", "to": "Wallisellen, Glatt (Bus)",
-      "stop": { "station": { "id": "8591285", "name": "Zürich, Neuaffoltern" }, "departureTimestamp": 1782198060 }
+      "stop": { "station": { "id": "8591285", "name": "Zürich, Neuaffoltern" }, "departureTimestamp": 1782198060, "delay": 5, "prognosis": { "departure": "2026-06-23T09:02:00+02:00" } }
     },
     {
       "name": "010378", "category": "B", "number": "62", "to": "Wallisellen, Glatt (Bus)",
