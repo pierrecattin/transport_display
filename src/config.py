@@ -139,7 +139,6 @@ class Colors:
 @dataclass
 class Config:
     stations: list[Station]
-    destination_labels: dict[str, str]
     display: Display = field(default_factory=Display)
     colors: Colors = field(default_factory=Colors)
 
@@ -237,12 +236,7 @@ def parse_config(raw: object) -> Config:
 
     display = _parse_display(raw.get("display", {}))
     colors = _parse_colors(raw.get("colors", {}))
-    return Config(
-        stations=stations,
-        destination_labels=labels,
-        display=display,
-        colors=colors,
-    )
+    return Config(stations=stations, display=display, colors=colors)
 
 
 def _parse_display(raw: object) -> Display:

@@ -19,7 +19,7 @@ from typing import Any
 
 import requests
 
-from .config import Connection, Station
+from .config import Connection
 
 log = logging.getLogger(__name__)
 
@@ -124,14 +124,6 @@ def parse_departures(
 
     out.sort(key=lambda d: d.departure_ts)
     return out
-
-
-def fetch_and_parse(station: Station, limit: int) -> list[Departure] | None:
-    """Fetch + parse one station. ``None`` on fetch failure."""
-    board = fetch_station(station.id, limit)
-    if board is None:
-        return None
-    return parse_departures(board, station.connections)
 
 
 def minutes_until(departure_ts: int, now: float) -> int:
