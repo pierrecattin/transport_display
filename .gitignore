@@ -10,7 +10,12 @@ preview.png
 *.pbm
 .vscode/
 
+# The live config: created from config.example.json by setup_pi.sh (or the
+# first web-UI save) and rewritten at runtime by the web UI, so it is
+# deliberately untracked -- web edits must not dirty the repo on the Pi.
+# Anchored to the root: tests/fixtures/config.json stays tracked.
+/config.json
+
 # Runtime artifacts written by the config web UI (server/app.py).
 config.json.bak
-config.json.tmp
-config.json.preview.tmp
+config.json.*.tmp

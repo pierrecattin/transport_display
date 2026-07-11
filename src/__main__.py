@@ -31,7 +31,12 @@ if TYPE_CHECKING:
 
 log = logging.getLogger("transport_display")
 
-TARGET_FPS = 30
+TARGET_FPS = 30  # while a destination label is scrolling
+IDLE_FPS = 4  # otherwise only the clock/minutes change (at most once a second)
+# A station renders dimmed once its last successful poll is older than this
+# many poll intervals (with a floor so short intervals don't flicker stale).
+STALE_POLLS = 3
+STALE_MIN_SEC = 180.0
 ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_CONFIG = ROOT / "config.json"
 
@@ -59,7 +64,13 @@ class Poller(threading.Thread):
 
     def run(self) -> None:
         while not self._stop.is_set():
-            self._poll_once()
+            try:
+                self._poll_once()
+            except Exception:
+                # One bad poll (unexpected payload shape, transient OS error,
+                # ...) must not kill the thread: a dead poller leaves the
+                # render loop showing silently decaying data forever.
+                log.exception("Poll cycle failed; retrying next interval")
             self._stop.wait(self._config.display.poll_interval_sec)
 
     def _poll_once(self) -> None:
@@ -85,6 +96,7 @@ def _build_groups(
 ) -> list[StationGroup]:
     from .layout import StationGroup  # local import keeps rgbmatrix off the dev path
 
+    stale_after = max(STALE_POLLS * config.display.poll_interval_sec, STALE_MIN_SEC)
     groups: list[StationGroup] = []
     with lock:
         for station in config.stations:
@@ -95,6 +107,9 @@ def _build_groups(
                     station_id=station.id,
                     name=station.display_name,
                     departures=vis,
+                    # Dim the group when polls have been failing so an outage
+                    # is visibly different from a live board.
+                    stale=st.last_ok is not None and now - st.last_ok > stale_after,
                 )
             )
     return groups
@@ -129,14 +144,16 @@ def main(argv: list[str]) -> int:
     signal.signal(signal.SIGTERM, _handle_signal)
     signal.signal(signal.SIGINT, _handle_signal)
 
-    target_dt = 1.0 / TARGET_FPS
     try:
         while not stopping.is_set():
             frame_start = time.time()
             clock_text = datetime.now().strftime("%H:%M")
             groups = _build_groups(config, state, lock, frame_start)
-            renderer.render(groups, clock_text, frame_start)
+            scrolling = renderer.render(groups, clock_text, frame_start)
 
+            # Full rate only while something scrolls; idle costs a Pi 3 much
+            # less CPU (and heat) and nothing else changes faster than 1/s.
+            target_dt = 1.0 / (TARGET_FPS if scrolling else IDLE_FPS)
             elapsed = time.time() - frame_start
             time.sleep(max(0.0, target_dt - elapsed))
     finally:

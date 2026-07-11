@@ -16,13 +16,16 @@ Neuaffolt
 ```
 
 - Bus **number** (left, uncropped), **destination** label (middle, clipped to its
-  column and scrolling horizontally when too long), **minutes** until the planned
-  departure (right, `N'`).
+  column and scrolling horizontally when too long), **minutes** until departure
+  (right, `N'`) — using the API's realtime estimate when it provides one, the
+  planned time otherwise.
 - **Clock** (`HH:MM`) top-right.
 - Departures leaving sooner than a per-station `min_time` are hidden.
 - Only the soonest departures that fit on the panel are shown.
 - The API is polled once per minute; the minute countdown and `min_time` filter are
   recomputed every frame, so the board stays live between polls.
+- If a station's polls keep failing (network/API outage), its rows dim after a few
+  minutes instead of pretending to be live, and recover on the next good poll.
 
 ## Hardware needed
 
@@ -45,7 +48,7 @@ On the Adafruit bonnet, you need to solder the E and 8 pin (large-panel addressi
 ## Layout of this repo
 
 ```
-config.json                 # stations / connections / labels + display options
+config.example.json         # committed template; the live config.json is untracked
 setup_pi.sh                 # one-time Pi provisioning (run on the Pi)
 transport_display.service   # systemd unit
 fonts/                      # bundled BDF bitmap fonts (from rpi-rgb-led-matrix)
@@ -62,6 +65,12 @@ tools/preview.py            # render the layout to a PNG without hardware
 ```
 
 ## Configuration — `config.json`
+
+The repo ships `config.example.json`; the **live** `config.json` is untracked.
+`setup_pi.sh` creates it from the example on first install, and the web UI
+rewrites it at runtime — so saving from the browser never dirties the git
+checkout on the Pi. On a dev machine, tools fall back to the example until you
+`cp config.example.json config.json` (or save once from the web UI).
 
 ```jsonc
 {

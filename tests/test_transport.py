@@ -1,11 +1,13 @@
 """Unit tests for parsing/filtering/countdown. Run: python -m pytest tests/"""
 
 import json
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
 from src.config import Connection
 from src.transport import (
+    _effective_departure_ts,
     minutes_until,
     parse_departures,
     visible_departures,
@@ -40,32 +42,65 @@ def test_parse_matches_number_and_direction_only() -> None:
     # Excludes 32->Holzerhurd (wrong direction) and the tram (number 11).
     matched = [(d.number, d.label, d.departure_ts) for d in deps]
     assert matched == [
-        ("62", "Wallisellen", BASE + 60),
-        ("32", "Strassenverkehrsamt", BASE + 180),
+        ("62", "Wallisellen", BASE + 120),  # prognosis.departure beats planned +60s
+        ("32", "Strassenverkehrsamt", BASE + 240),  # planned +180s with delay: 1
         ("61", "Strassenverkehrsamt", BASE + 600),
         ("62", "Wallisellen", BASE + 900),
-    ]  # sorted ascending by departure
+    ]  # sorted ascending by best-known departure
 
 
 def test_visible_departures_applies_min_time() -> None:
     deps = parse_departures(_board(), CONNS)
     visible = visible_departures(deps, min_time=5, now=BASE)
-    # 62@1min and 32@3min are dropped; 61@10min and 62@15min remain.
+    # 62@2min and 32@4min are dropped; 61@10min and 62@15min remain.
     assert [(d.number, m) for d, m in visible] == [("61", 10), ("62", 15)]
 
 
 def test_visible_departures_dedupes_to_next_per_connection() -> None:
     deps = parse_departures(_board(), CONNS)
     visible = visible_departures(deps, min_time=0, now=BASE)
-    # 62 appears twice (1min, 15min) -> only the soonest catchable one is kept.
-    assert [(d.number, m) for d, m in visible] == [("62", 1), ("32", 3), ("61", 10)]
+    # 62 appears twice (2min, 15min) -> only the soonest catchable one is kept.
+    assert [(d.number, m) for d, m in visible] == [("62", 2), ("32", 4), ("61", 10)]
 
 
 def test_visible_departures_min_time_drops_then_dedupes() -> None:
     deps = parse_departures(_board(), CONNS)
     visible = visible_departures(deps, min_time=5, now=BASE)
-    # 62@1min dropped by min_time, so 62@15min becomes the next catchable 62.
+    # 62@2min dropped by min_time, so 62@15min becomes the next catchable 62.
     assert [(d.number, m) for d, m in visible] == [("61", 10), ("62", 15)]
+
+
+def test_dedupe_keys_on_destination_not_label() -> None:
+    # Two directions of one line may resolve to the same on-screen label;
+    # they are distinct connections and must both stay visible.
+    conns = [
+        Connection("7", "Zürich, A", "Same"),
+        Connection("7", "Zürich, B", "Same"),
+    ]
+    board: list[dict[str, Any]] = [
+        {"number": "7", "to": "Zürich, A", "stop": {"departureTimestamp": BASE + 120}},
+        {"number": "7", "to": "Zürich, B", "stop": {"departureTimestamp": BASE + 240}},
+    ]
+    visible = visible_departures(parse_departures(board, conns), min_time=0, now=BASE)
+    assert [(d.destination, m) for d, m in visible] == [("Zürich, A", 2), ("Zürich, B", 4)]
+
+
+def test_effective_ts_prefers_prognosis_then_delay() -> None:
+    # Prognosis (realtime ISO estimate) wins over both delay and planned.
+    iso = datetime.fromtimestamp(BASE + 300, timezone(timedelta(hours=2))).isoformat()
+    stop: dict[str, Any] = {
+        "departureTimestamp": BASE,
+        "delay": 1,
+        "prognosis": {"departure": iso},
+    }
+    assert _effective_departure_ts(stop) == BASE + 300
+    # No prognosis -> planned + delay (delays can be negative: early bus).
+    assert _effective_departure_ts({"departureTimestamp": BASE, "delay": 2}) == BASE + 120
+    assert _effective_departure_ts({"departureTimestamp": BASE, "delay": -1}) == BASE - 60
+    # Unparseable prognosis falls back to delay/planned; no planned -> None.
+    bad = {"departureTimestamp": BASE, "prognosis": {"departure": "garbage"}}
+    assert _effective_departure_ts(bad) == BASE
+    assert _effective_departure_ts({"delay": 2}) is None
 
 
 def test_parse_skips_malformed_entries() -> None:

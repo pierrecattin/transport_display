@@ -16,7 +16,7 @@ import logging
 from rgbmatrix import RGBMatrix, RGBMatrixOptions
 
 from .config import Config
-from .layout import FrameComposer, StationGroup
+from .layout import PANEL_H, PANEL_W, FrameComposer, StationGroup
 
 log = logging.getLogger(__name__)
 
@@ -28,8 +28,8 @@ class Renderer:
         d = config.display
 
         options = RGBMatrixOptions()
-        options.rows = 64
-        options.cols = 128
+        options.rows = PANEL_H
+        options.cols = PANEL_W
         options.chain_length = 1
         options.parallel = 1
         options.hardware_mapping = "adafruit-hat-pwm"
@@ -49,11 +49,16 @@ class Renderer:
         self.matrix = RGBMatrix(options=options)
         self.canvas = self.matrix.CreateFrameCanvas()
 
-    def render(self, groups: list[StationGroup], clock_text: str, now: float) -> None:
-        """Compose and display one frame."""
+    def render(self, groups: list[StationGroup], clock_text: str, now: float) -> bool:
+        """Compose and display one frame.
+
+        Returns whether the frame contains scrolling content, so the caller
+        can drop to a low idle frame rate when nothing moves.
+        """
         img = self.composer.compose(groups, clock_text, now)
         self.canvas.SetImage(img, 0, 0)
         self.canvas = self.matrix.SwapOnVSync(self.canvas)
+        return self.composer.scrolling
 
     def clear(self) -> None:
         self.matrix.Clear()

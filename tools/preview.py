@@ -17,7 +17,9 @@ from src.transport import Departure  # noqa: E402
 
 
 def _dep(number: str, label: str) -> Departure:
-    return Departure(number=number, label=label, departure_ts=0)
+    # The preview only draws number + label; the destination just needs to be
+    # unique per row, so reuse the label.
+    return Departure(number=number, destination=label, label=label, departure_ts=0)
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -31,7 +33,11 @@ def main() -> None:
     out.parent.mkdir(parents=True, exist_ok=True)
 
     # Use the repo config's fonts + colours so the preview reflects edits.
-    cfg = load_config(ROOT / "config.json")
+    # The live config.json is untracked; fresh checkouts fall back to the example.
+    cfg_path = ROOT / "config.json"
+    if not cfg_path.exists():
+        cfg_path = ROOT / "config.example.json"
+    cfg = load_config(cfg_path)
     d = cfg.display
     composer = FrameComposer(d.font, d.header_font, d.scroll_px_per_sec, cfg.colors)
     groups = [

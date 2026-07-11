@@ -14,8 +14,9 @@ scrolling destination labels.
 
 `config.json` → `config.py` (load/validate) → poller thread in `__main__.py`
 fetches each station once/minute via `transport.py` → shared `state` dict (under
-a lock) holds raw `Departure`s → 30fps render loop builds `StationGroup`s
-(`layout.py` composes a PIL frame) → `renderer.py` pushes it to the panel.
+a lock) holds raw `Departure`s → render loop (30fps while a label scrolls, 4fps
+idle) builds `StationGroup`s (`layout.py` composes a PIL frame) → `renderer.py`
+pushes it to the panel.
 
 | File | Responsibility |
 |------|----------------|
@@ -24,7 +25,7 @@ a lock) holds raw `Departure`s → 30fps render loop builds `StationGroup`s
 | `src/layout.py` | **Pure PIL, no `rgbmatrix` import.** `FrameComposer.compose()` builds the 128×64 image; holds fonts, column geometry, and scroll state. |
 | `src/renderer.py` | **Only** module importing `rgbmatrix`. Thin wrapper: options + `SetImage`/`SwapOnVSync`. |
 | `src/__main__.py` | `Poller` thread + render loop + signal-based shutdown. Entry: `python3 -m src`. |
-| `server/` | FastAPI backend for the config web UI. Reuses `load_config` (validation) + `FrameComposer` (PNG preview); **never** imports `renderer`/`rgbmatrix`. Entry: `python3 -m server` (own venv `webenv/`, own service on :8080). |
+| `server/` | FastAPI backend for the config web UI. Reuses `parse_config` (validation) + `FrameComposer` (PNG preview); **never** imports `renderer`/`rgbmatrix`. Entry: `python3 -m server` (own venv `webenv/`, own service on :8080). |
 | `web/` | React+TS config UI (Vite). Built on the dev machine; `web/dist/` is committed and served by `server/`. |
 
 ## Key conventions / gotchas
@@ -43,7 +44,10 @@ a lock) holds raw `Departure`s → 30fps render loop builds `StationGroup`s
   stop. E.g. line 32 → `"Zürich, Strassenverkehrsamt"` selects that direction.
 - **Countdown is live between polls.** The API is polled once/minute, but minutes
   and the `min_time` filter are recomputed every frame from cached
-  `departure_ts`. Don't move that logic into the poller.
+  `departure_ts` (the API's realtime estimate when present, else planned). Don't
+  move that logic into the poller. A station whose last successful poll is older
+  than `STALE_POLLS` intervals renders dimmed (`StationGroup.stale`), so an
+  outage doesn't masquerade as a live board.
 - **Fonts are BDF → PIL.** Pillow can't read `.bdf` at draw time, so `layout.py`
   compiles them once (`BdfFontFile`) into a temp cache. PIL *bitmap* fonts have no
   `getmetrics()`; use `font_height()`/`text_w()` (getbbox/getlength) instead.
@@ -51,9 +55,13 @@ a lock) holds raw `Departure`s → 30fps render loop builds `StationGroup`s
   wall-clock delta clamped to `MAX_DT` (avoids jumps after a frame stall). The
   destination column is pixel-clipped via a sub-image paste, not `fit_text`
   truncation (that's only for headers).
-- **`config.json` is committed and deployed via git** — it's the live config, not
-  an example. Edit deliberately. It's also written at runtime by the web UI
-  (`PUT /api/config`), which validates via `load_config` and keeps a `.bak`.
+- **The live `config.json` is untracked.** The repo commits `config.example.json`;
+  `setup_pi.sh` copies it to `config.json` on first install and the web UI
+  rewrites the live file at runtime (`PUT /api/config`, validated via
+  `parse_config`, keeps a `.bak`) — which is exactly why it can't be tracked:
+  web-UI saves must not dirty the Pi's checkout and break `git pull` deploys.
+  Server `GET /api/config`, `tools/preview.py`, and the tests all fall back to
+  the example when the live file is missing. Don't commit a live config.
 - **Render colours live in the config now.** `src/config.py` owns `COLOR_DEFAULTS`
   + the `Colors` dataclass (the single source of truth — they match what
   `layout.py` used to hardcode); `FrameComposer` takes a `Colors`. Add a new
