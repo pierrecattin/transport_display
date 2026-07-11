@@ -12,5 +12,4 @@ preview.png
 
 # Runtime artifacts written by the config web UI (server/app.py).
 config.json.bak
-config.json.tmp
-config.json.preview.tmp
+config.json.*.tmp

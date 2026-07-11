@@ -3,7 +3,7 @@
 Endpoints (all under ``/api``):
 
 * ``GET  /config``  – the current ``config.json`` (raw).
-* ``PUT  /config``  – validate (via :func:`src.config.load_config`), write
+* ``PUT  /config``  – validate (via :func:`src.config.parse_config`), write
   atomically, then restart the display service.
 * ``GET  /meta``    – defaults + field hints so the form can render generically.
 * ``GET  /fonts``   – the bundled ``.bdf`` font stems.
@@ -23,6 +23,7 @@ import json
 import os
 import shutil
 import subprocess
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -37,7 +38,7 @@ from src.config import (
     FONTS_DIR,
     Config,
     ConfigError,
-    load_config,
+    parse_config,
 )
 from src.layout import FrameComposer, StationGroup
 from src.transport import Departure
@@ -137,20 +138,28 @@ def get_config() -> Any:
 @app.put("/api/config")
 def put_config(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
     """Validate then atomically replace config.json, keeping a .bak, and restart."""
-    tmp = CONFIG_PATH.parent / (CONFIG_PATH.name + ".tmp")
-    tmp.write_text(json.dumps(payload, indent=4, ensure_ascii=False), encoding="utf-8")
     try:
-        load_config(tmp)
+        parse_config(payload)
     except ConfigError as exc:
-        tmp.unlink(missing_ok=True)
         raise HTTPException(status_code=400, detail=str(exc))
-    except Exception:
-        tmp.unlink(missing_ok=True)
-        raise
 
     if CONFIG_PATH.exists():
         shutil.copy2(CONFIG_PATH, CONFIG_PATH.parent / (CONFIG_PATH.name + ".bak"))
-    os.replace(tmp, CONFIG_PATH)
+    # Unique temp name (concurrent saves must not clobber each other's
+    # half-written file) + fsync so a power cut can't leave a truncated config.
+    fd, tmp_name = tempfile.mkstemp(
+        dir=CONFIG_PATH.parent, prefix=CONFIG_PATH.name + ".", suffix=".tmp"
+    )
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            json.dump(payload, fh, indent=4, ensure_ascii=False)
+            fh.write("\n")
+            fh.flush()
+            os.fsync(fh.fileno())
+        os.replace(tmp_name, CONFIG_PATH)
+    except BaseException:
+        Path(tmp_name).unlink(missing_ok=True)
+        raise
     return {"ok": True, "restart": _restart_display()}
 
 
@@ -209,14 +218,10 @@ def post_preview(
 ) -> Response:
     """Render the given (unsaved) config to a scaled PNG. No hardware, no restart."""
     scale = max(1, min(scale, 16))
-    tmp = CONFIG_PATH.parent / (CONFIG_PATH.name + ".preview.tmp")
-    tmp.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
     try:
-        cfg = load_config(tmp)
+        cfg = parse_config(payload)
     except ConfigError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
-    finally:
-        tmp.unlink(missing_ok=True)
 
     d = cfg.display
     try:

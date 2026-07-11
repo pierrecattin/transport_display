@@ -157,10 +157,9 @@ def _strip_city(destination: str) -> str:
 
 
 def load_config(path: str | Path) -> Config:
-    """Parse, validate and return the configuration.
+    """Read ``path``, validate and return the configuration.
 
-    Raises ``ConfigError`` on structural problems. Missing destination labels
-    are only warned about (we fall back to a stripped destination).
+    Raises ``ConfigError`` on a missing/unreadable file or structural problems.
     """
     path = Path(path)
     try:
@@ -169,7 +168,15 @@ def load_config(path: str | Path) -> Config:
         raise ConfigError(f"Config file not found: {path}") from exc
     except json.JSONDecodeError as exc:
         raise ConfigError(f"Config file is not valid JSON: {exc}") from exc
+    return parse_config(raw)
 
+
+def parse_config(raw: object) -> Config:
+    """Validate an already-parsed JSON document and return the configuration.
+
+    Raises ``ConfigError`` on structural problems. Missing destination labels
+    are only warned about (we fall back to a stripped destination).
+    """
     if not isinstance(raw, dict):
         raise ConfigError("Top-level config must be a JSON object")
 
