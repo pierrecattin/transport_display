@@ -27,7 +27,6 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import Body, FastAPI, HTTPException, Response
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from src.config import (
@@ -83,13 +82,12 @@ COLOR_ROLE_LABELS: dict[str, str] = {
 
 app = FastAPI(title="Transport display config")
 
-# LAN-only, no auth (see plan); permissive CORS keeps the Vite dev server happy.
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Deliberately NO CORS middleware: the API is unauthenticated, so allowing
+# cross-origin requests would let any web page someone on the LAN visits drive
+# it (rewrite the config, stop the display). Browsers block cross-origin
+# PUT/POST without CORS headers, and no legitimate caller is cross-origin --
+# the built SPA is served same-origin from this app, and `npm run dev`
+# reaches the API through Vite's server-side /api proxy.
 
 
 def _systemctl(args: list[str], *, sudo: bool) -> tuple[bool, str]:
