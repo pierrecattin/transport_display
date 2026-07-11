@@ -16,7 +16,7 @@ import logging
 from rgbmatrix import RGBMatrix, RGBMatrixOptions
 
 from .config import Config
-from .layout import FrameComposer, StationGroup
+from .layout import PANEL_H, PANEL_W, FrameComposer, StationGroup
 
 log = logging.getLogger(__name__)
 
@@ -28,8 +28,8 @@ class Renderer:
         d = config.display
 
         options = RGBMatrixOptions()
-        options.rows = 64
-        options.cols = 128
+        options.rows = PANEL_H
+        options.cols = PANEL_W
         options.chain_length = 1
         options.parallel = 1
         options.hardware_mapping = "adafruit-hat-pwm"
