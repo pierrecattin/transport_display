@@ -203,7 +203,15 @@ def _sample_groups(cfg: Config) -> list[StationGroup]:
     for station in cfg.stations:
         base = max(station.min_time, 1)
         deps = [
-            (Departure(number=c.number, label=c.label, departure_ts=0), base + i * 3)
+            (
+                Departure(
+                    number=c.number,
+                    destination=c.destination,
+                    label=c.label,
+                    departure_ts=0,
+                ),
+                base + i * 3,
+            )
             for i, c in enumerate(station.connections)
         ]
         groups.append(

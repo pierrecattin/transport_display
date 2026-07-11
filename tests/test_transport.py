@@ -70,6 +70,21 @@ def test_visible_departures_min_time_drops_then_dedupes() -> None:
     assert [(d.number, m) for d, m in visible] == [("61", 10), ("62", 15)]
 
 
+def test_dedupe_keys_on_destination_not_label() -> None:
+    # Two directions of one line may resolve to the same on-screen label;
+    # they are distinct connections and must both stay visible.
+    conns = [
+        Connection("7", "Zürich, A", "Same"),
+        Connection("7", "Zürich, B", "Same"),
+    ]
+    board: list[dict[str, Any]] = [
+        {"number": "7", "to": "Zürich, A", "stop": {"departureTimestamp": BASE + 120}},
+        {"number": "7", "to": "Zürich, B", "stop": {"departureTimestamp": BASE + 240}},
+    ]
+    visible = visible_departures(parse_departures(board, conns), min_time=0, now=BASE)
+    assert [(d.destination, m) for d, m in visible] == [("Zürich, A", 2), ("Zürich, B", 4)]
+
+
 def test_effective_ts_prefers_prognosis_then_delay() -> None:
     # Prognosis (realtime ISO estimate) wins over both delay and planned.
     iso = datetime.fromtimestamp(BASE + 300, timezone(timedelta(hours=2))).isoformat()

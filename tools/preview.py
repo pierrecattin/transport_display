@@ -17,7 +17,9 @@ from src.transport import Departure  # noqa: E402
 
 
 def _dep(number: str, label: str) -> Departure:
-    return Departure(number=number, label=label, departure_ts=0)
+    # The preview only draws number + label; the destination just needs to be
+    # unique per row, so reuse the label.
+    return Departure(number=number, destination=label, label=label, departure_ts=0)
 
 
 ROOT = Path(__file__).resolve().parent.parent

@@ -32,6 +32,7 @@ class Departure:
     """One matched upcoming departure for a station."""
 
     number: str  # bus line, e.g. "32"
+    destination: str  # API "to" terminal (identifies the direction)
     label: str  # short on-screen destination label
     departure_ts: int  # best-known departure (realtime if available), unix seconds
 
@@ -114,7 +115,9 @@ def parse_departures(
         if ts is None:
             continue
 
-        out.append(Departure(number=number, label=label, departure_ts=ts))
+        out.append(
+            Departure(number=number, destination=to, label=label, departure_ts=ts)
+        )
 
     out.sort(key=lambda d: d.departure_ts)
     return out
@@ -142,10 +145,10 @@ def visible_departures(
     """Departures still worth showing, paired with their live minute count.
 
     Drops anything departing in fewer than ``min_time`` minutes, then keeps only
-    the *soonest* catchable departure per ``(number, label)`` connection — so a
-    busy line doesn't fill the panel with its own repeats and crowd out the other
-    lines/stations. Input is assumed already sorted by timestamp, so output stays
-    sorted and the first survivor of each key is the next one you can catch.
+    the *soonest* catchable departure per ``(number, destination)`` connection —
+    so a busy line doesn't fill the panel with its own repeats and crowd out the
+    other lines/stations. Input is assumed already sorted by timestamp, so output
+    stays sorted and the first survivor of each key is the next one you can catch.
     """
     result: list[tuple[Departure, int]] = []
     seen: set[tuple[str, str]] = set()
@@ -153,7 +156,7 @@ def visible_departures(
         mins = minutes_until(dep.departure_ts, now)
         if mins < min_time:
             continue
-        key = (dep.number, dep.label)
+        key = (dep.number, dep.destination)
         if key in seen:
             continue
         seen.add(key)
