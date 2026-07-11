@@ -59,7 +59,13 @@ class Poller(threading.Thread):
 
     def run(self) -> None:
         while not self._stop.is_set():
-            self._poll_once()
+            try:
+                self._poll_once()
+            except Exception:
+                # One bad poll (unexpected payload shape, transient OS error,
+                # ...) must not kill the thread: a dead poller leaves the
+                # render loop showing silently decaying data forever.
+                log.exception("Poll cycle failed; retrying next interval")
             self._stop.wait(self._config.display.poll_interval_sec)
 
     def _poll_once(self) -> None:
