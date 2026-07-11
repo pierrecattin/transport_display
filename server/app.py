@@ -95,7 +95,9 @@ def _systemctl(args: list[str], *, sudo: bool) -> tuple[bool, str]:
     """Best-effort systemctl call. Returns (ok, detail). Never raises."""
     if shutil.which("systemctl") is None:
         return False, "systemctl not available"
-    cmd = (["sudo"] if sudo else []) + ["systemctl", *args]
+    # -n: if the sudoers rule is missing, fail immediately with a clear error
+    # instead of sitting on a password prompt until the timeout.
+    cmd = (["sudo", "-n"] if sudo else []) + ["systemctl", *args]
     try:
         proc = subprocess.run(cmd, capture_output=True, text=True, timeout=20)
     except (OSError, subprocess.SubprocessError) as exc:
