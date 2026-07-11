@@ -40,14 +40,14 @@ CMDLINE_TXT="${BOOT_DIR}/cmdline.txt"
 
 echo "==> Boot config dir: ${BOOT_DIR}"
 
-echo "==> [1/8] Installing system dependencies"
+echo "==> [1/9] Installing system dependencies"
 apt-get update
 apt-get install -y git python3 python3-dev python3-pip python3-venv python3-pillow python3-requests curl
 
-echo "==> [2/8] Setting timezone to Europe/Zurich (clock + countdown correctness)"
+echo "==> [2/9] Setting timezone to Europe/Zurich (clock + countdown correctness)"
 timedatectl set-timezone Europe/Zurich || echo "    (could not set timezone; continuing)"
 
-echo "==> [3/8] Installing the RGB matrix library via Adafruit's installer"
+echo "==> [3/9] Installing the RGB matrix library via Adafruit's installer"
 echo "    When prompted, choose:"
 echo "      - Interface board:  Adafruit RGB Matrix Bonnet"
 echo "      - Quality vs convenience:  QUALITY  (matches the GPIO4<->GPIO18 mod)"
@@ -71,7 +71,7 @@ else
     rm -rf "${BUILD_DIR}"
 fi
 
-echo "==> [4/8] Setting up the config web UI venv (FastAPI/uvicorn)"
+echo "==> [4/9] Setting up the config web UI venv (FastAPI/uvicorn)"
 # A separate venv keeps the web deps off the display runtime. --system-site-packages
 # lets it reuse apt Pillow/requests for the layout preview render.
 if [[ -x "${WEBENV}/bin/python3" ]] && "${WEBENV}/bin/python3" -c "import fastapi, uvicorn" 2>/dev/null; then
@@ -82,7 +82,7 @@ else
     "${WEBENV}/bin/python3" -m pip install -r "${SCRIPT_DIR}/requirements-web.txt"
 fi
 
-echo "==> [5/8] Disabling onboard sound (required by the E<->8 / GPIO4<->18 mods)"
+echo "==> [5/9] Disabling onboard sound (required by the E<->8 / GPIO4<->18 mods)"
 # (a) blacklist the kernel module
 BLACKLIST=/etc/modprobe.d/blacklist-rgb-matrix.conf
 if ! grep -qs "snd_bcm2835" "${BLACKLIST}"; then
@@ -102,7 +102,7 @@ else
     echo "    dtparam=audio=off already set"
 fi
 
-echo "==> [6/8] Isolating CPU core 3 for the panel refresh thread"
+echo "==> [6/9] Isolating CPU core 3 for the panel refresh thread"
 if grep -qs "isolcpus=" "${CMDLINE_TXT}"; then
     echo "    isolcpus already present in cmdline.txt; leaving as-is"
 else
@@ -111,7 +111,18 @@ else
     echo "    appended isolcpus=3"
 fi
 
-echo "==> [7/8] Installing and enabling the display systemd service"
+echo "==> [7/9] Ensuring a live config.json exists"
+# The live config is untracked (the web UI rewrites it at runtime); first-time
+# installs start from the committed example.
+if [[ ! -f "${SCRIPT_DIR}/config.json" ]]; then
+    cp "${SCRIPT_DIR}/config.example.json" "${SCRIPT_DIR}/config.json"
+    chown "${SERVICE_USER}:" "${SCRIPT_DIR}/config.json"
+    echo "    created config.json from config.example.json"
+else
+    echo "    config.json already present; leaving it alone"
+fi
+
+echo "==> [8/9] Installing and enabling the display systemd service"
 # Render the unit so WorkingDirectory + ExecStart point at this repo and its venv.
 sed -e "s#^WorkingDirectory=.*#WorkingDirectory=${SCRIPT_DIR}#" \
     -e "s#^ExecStart=.*#ExecStart=${VENV}/bin/python3 -m src#" \
@@ -121,7 +132,7 @@ systemctl enable "${SERVICE_NAME}"
 systemctl restart "${SERVICE_NAME}"
 echo "    ${SERVICE_NAME} enabled and (re)started"
 
-echo "==> [8/8] Installing the config web UI (sudoers rule + service)"
+echo "==> [9/9] Installing the config web UI (sudoers rule + service)"
 # Let the unprivileged web UI restart/start/stop ONLY the display service
 # (nothing else). start/stop back the web UI's on/off power button.
 SUDOERS_FILE="/etc/sudoers.d/transport_display_config"

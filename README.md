@@ -48,7 +48,7 @@ On the Adafruit bonnet, you need to solder the E and 8 pin (large-panel addressi
 ## Layout of this repo
 
 ```
-config.json                 # stations / connections / labels + display options
+config.example.json         # committed template; the live config.json is untracked
 setup_pi.sh                 # one-time Pi provisioning (run on the Pi)
 transport_display.service   # systemd unit
 fonts/                      # bundled BDF bitmap fonts (from rpi-rgb-led-matrix)
@@ -65,6 +65,12 @@ tools/preview.py            # render the layout to a PNG without hardware
 ```
 
 ## Configuration — `config.json`
+
+The repo ships `config.example.json`; the **live** `config.json` is untracked.
+`setup_pi.sh` creates it from the example on first install, and the web UI
+rewrites it at runtime — so saving from the browser never dirties the git
+checkout on the Pi. On a dev machine, tools fall back to the example until you
+`cp config.example.json config.json` (or save once from the web UI).
 
 ```jsonc
 {

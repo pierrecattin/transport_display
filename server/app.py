@@ -45,6 +45,9 @@ from src.transport import Departure
 
 ROOT = Path(__file__).resolve().parent.parent
 CONFIG_PATH = Path(os.environ.get("TRANSPORT_DISPLAY_CONFIG", ROOT / "config.json"))
+# The live config is untracked; fresh checkouts serve the committed example
+# until the first save creates the real file.
+EXAMPLE_CONFIG = ROOT / "config.example.json"
 WEB_DIST = ROOT / "web" / "dist"
 DISPLAY_SERVICE = os.environ.get("TRANSPORT_DISPLAY_SERVICE", "transport_display.service")
 # Set on the dev machine so saving doesn't try to poke a non-existent service.
@@ -129,8 +132,9 @@ def _rgb_to_hex(rgb: tuple[int, int, int]) -> str:
 
 @app.get("/api/config")
 def get_config() -> Any:
+    path = CONFIG_PATH if CONFIG_PATH.exists() else EXAMPLE_CONFIG
     try:
-        return json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+        return json.loads(path.read_text(encoding="utf-8"))
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail=f"{CONFIG_PATH.name} not found")
     except json.JSONDecodeError as exc:

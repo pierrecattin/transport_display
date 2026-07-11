@@ -20,8 +20,15 @@ def _write(tmp_path: Path, data: dict[str, Any]) -> Path:
     return p
 
 
-def test_live_repo_config_is_valid() -> None:
-    load_config("config.json")
+def test_example_config_is_valid() -> None:
+    load_config("config.example.json")
+
+
+def test_live_config_is_valid_when_present() -> None:
+    # The live config.json is untracked (created from the example by
+    # setup_pi.sh or the web UI), so a fresh checkout may not have one.
+    if Path("config.json").exists():
+        load_config("config.json")
 
 
 def test_loads_fixture_config() -> None:
