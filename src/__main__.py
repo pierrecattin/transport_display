@@ -32,6 +32,10 @@ if TYPE_CHECKING:
 log = logging.getLogger("transport_display")
 
 TARGET_FPS = 30
+# A station renders dimmed once its last successful poll is older than this
+# many poll intervals (with a floor so short intervals don't flicker stale).
+STALE_POLLS = 3
+STALE_MIN_SEC = 180.0
 ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_CONFIG = ROOT / "config.json"
 
@@ -91,6 +95,7 @@ def _build_groups(
 ) -> list[StationGroup]:
     from .layout import StationGroup  # local import keeps rgbmatrix off the dev path
 
+    stale_after = max(STALE_POLLS * config.display.poll_interval_sec, STALE_MIN_SEC)
     groups: list[StationGroup] = []
     with lock:
         for station in config.stations:
@@ -101,6 +106,9 @@ def _build_groups(
                     station_id=station.id,
                     name=station.display_name,
                     departures=vis,
+                    # Dim the group when polls have been failing so an outage
+                    # is visibly different from a live board.
+                    stale=st.last_ok is not None and now - st.last_ok > stale_after,
                 )
             )
     return groups

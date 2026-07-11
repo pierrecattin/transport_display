@@ -24,6 +24,8 @@ Neuaffolt
 - Only the soonest departures that fit on the panel are shown.
 - The API is polled once per minute; the minute countdown and `min_time` filter are
   recomputed every frame, so the board stays live between polls.
+- If a station's polls keep failing (network/API outage), its rows dim after a few
+  minutes instead of pretending to be live, and recover on the next good poll.
 
 ## Hardware needed
 

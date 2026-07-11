@@ -22,7 +22,7 @@ from pathlib import Path
 
 from PIL import BdfFontFile, Image, ImageDraw, ImageFont
 
-from .config import FONTS_DIR, Colors
+from .config import FONTS_DIR, RGB, Colors
 from .transport import Departure
 
 PANEL_W = 128
@@ -45,14 +45,29 @@ MAX_DT = 0.5  # clamp scroll delta so a reappearing row doesn't jump
 
 
 class StationGroup:
-    """A station's header label plus its visible (departure, minutes) rows."""
+    """A station's header label plus its visible (departure, minutes) rows.
+
+    ``stale`` marks data that hasn't been refreshed for a while (API outage);
+    the group is drawn dimmed so the board doesn't look confidently live.
+    """
 
     def __init__(
-        self, station_id: str, name: str, departures: list[tuple[Departure, int]]
+        self,
+        station_id: str,
+        name: str,
+        departures: list[tuple[Departure, int]],
+        stale: bool = False,
     ) -> None:
         self.station_id = station_id
         self.name = name
         self.departures = departures
+        self.stale = stale
+
+
+def _dim(color: RGB) -> RGB:
+    """The stale rendering of a colour (40% brightness)."""
+    r, g, b = color
+    return (r * 2 // 5, g * 2 // 5, b * 2 // 5)
 
 
 def load_pil_font(bdf_path: Path) -> ImageFont.ImageFont:
@@ -135,7 +150,8 @@ class FrameComposer:
             # First header shares the top row with the clock; clip it short.
             header_max = (clock_x - ZONE_GAP) if y == 0 else PANEL_W
             header = fit_text(self.header_font, group.name, max(0, header_max))
-            draw.text((0, y), header, font=self.header_font, fill=self.colors.header)
+            header_fill = _dim(self.colors.header) if group.stale else self.colors.header
+            draw.text((0, y), header, font=self.header_font, fill=header_fill)
             y += self.header_h + ROW_PAD
 
             filled = False
@@ -145,7 +161,7 @@ class FrameComposer:
                     break
                 key = f"{group.station_id}|{dep.number}|{dep.label}"
                 seen.add(key)
-                self._draw_row(img, draw, y, dep, mins, key, now)
+                self._draw_row(img, draw, y, dep, mins, key, now, group.stale)
                 y += self.row_h
             if filled:
                 break  # screen is full -> stop adding stations
@@ -167,17 +183,22 @@ class FrameComposer:
         mins: int,
         key: str,
         now: float,
+        stale: bool,
     ) -> None:
+        number_fill = _dim(self.colors.number) if stale else self.colors.number
+        minutes_fill = _dim(self.colors.minutes) if stale else self.colors.minutes
+        dest_fill = _dim(self.colors.dest) if stale else self.colors.dest
+
         # Bus number, left, uncropped.
-        draw.text((0, y), dep.number, font=self.body_font, fill=self.colors.number)
+        draw.text((0, y), dep.number, font=self.body_font, fill=number_fill)
 
         # Minutes, right-aligned, uncropped, Swiss "7'" notation.
         mins_text = f"{mins}'"
         mins_w = text_w(self.body_font, mins_text)
-        draw.text((PANEL_W - mins_w, y), mins_text, font=self.body_font, fill=self.colors.minutes)
+        draw.text((PANEL_W - mins_w, y), mins_text, font=self.body_font, fill=minutes_fill)
 
         # Destination, clipped to its column, scrolling if too wide.
-        self._draw_dest(img, draw, self.dest_x0, y, dep.label, key, now)
+        self._draw_dest(img, draw, self.dest_x0, y, dep.label, key, now, dest_fill)
 
     def _draw_dest(
         self,
@@ -188,19 +209,20 @@ class FrameComposer:
         text: str,
         key: str,
         now: float,
+        fill: RGB,
     ) -> None:
         w = text_w(self.body_font, text)
         col_w = self.dest_col_w
         if w <= col_w:
-            draw.text((x0, y), text, font=self.body_font, fill=self.colors.dest)
+            draw.text((x0, y), text, font=self.body_font, fill=fill)
             return
 
         period = w + SCROLL_GAP
         off = self._scroll_offset(key, now, period)
         col = Image.new("RGB", (col_w, self.row_h))
         cd = ImageDraw.Draw(col)
-        cd.text((-off, 0), text, font=self.body_font, fill=self.colors.dest)
-        cd.text((-off + period, 0), text, font=self.body_font, fill=self.colors.dest)
+        cd.text((-off, 0), text, font=self.body_font, fill=fill)
+        cd.text((-off + period, 0), text, font=self.body_font, fill=fill)
         img.paste(col, (x0, y))
 
     def _scroll_offset(self, key: str, now: float, period: int) -> int:

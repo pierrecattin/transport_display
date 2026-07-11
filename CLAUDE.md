@@ -43,7 +43,10 @@ a lock) holds raw `Departure`s → 30fps render loop builds `StationGroup`s
   stop. E.g. line 32 → `"Zürich, Strassenverkehrsamt"` selects that direction.
 - **Countdown is live between polls.** The API is polled once/minute, but minutes
   and the `min_time` filter are recomputed every frame from cached
-  `departure_ts`. Don't move that logic into the poller.
+  `departure_ts` (the API's realtime estimate when present, else planned). Don't
+  move that logic into the poller. A station whose last successful poll is older
+  than `STALE_POLLS` intervals renders dimmed (`StationGroup.stale`), so an
+  outage doesn't masquerade as a live board.
 - **Fonts are BDF → PIL.** Pillow can't read `.bdf` at draw time, so `layout.py`
   compiles them once (`BdfFontFile`) into a temp cache. PIL *bitmap* fonts have no
   `getmetrics()`; use `font_height()`/`text_w()` (getbbox/getlength) instead.
