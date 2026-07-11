@@ -19,6 +19,10 @@ WEBENV="${SCRIPT_DIR}/webenv"  # FastAPI/uvicorn for the config web UI (step 4)
 # `sudo` (SUDO_USER), falling back to "pi". Override for an unusual setup with:
 #     SERVICE_USER=alice sudo -E bash setup_pi.sh
 SERVICE_USER="${SERVICE_USER:-${SUDO_USER:-pi}}"
+# Adafruit installer commit to fetch (runs as root, so pinned rather than
+# `main`: re-runs stay reproducible and upstream changes can't silently alter
+# what we execute). Bump deliberately after testing a newer revision.
+RGB_MATRIX_INSTALLER_COMMIT="35fa2e669a5f441c56f057d91085e35cf1876145"
 
 if [[ "${EUID}" -ne 0 ]]; then
     echo "Please run as root:  sudo bash setup_pi.sh" >&2
@@ -60,7 +64,7 @@ else
     "${VENV}/bin/python3" -m pip install --upgrade pip
     "${VENV}/bin/python3" -m pip install adafruit-python-shell
     BUILD_DIR="$(mktemp -d)"
-    curl -fsSL https://raw.githubusercontent.com/adafruit/Raspberry-Pi-Installer-Scripts/main/rgb-matrix.py \
+    curl -fsSL "https://raw.githubusercontent.com/adafruit/Raspberry-Pi-Installer-Scripts/${RGB_MATRIX_INSTALLER_COMMIT}/rgb-matrix.py" \
         -o "${BUILD_DIR}/rgb-matrix.py"
     # Run with the venv's interpreter so the bindings land in the venv.
     ( cd "${BUILD_DIR}" && "${VENV}/bin/python3" rgb-matrix.py )
