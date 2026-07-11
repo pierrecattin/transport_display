@@ -31,7 +31,8 @@ if TYPE_CHECKING:
 
 log = logging.getLogger("transport_display")
 
-TARGET_FPS = 30
+TARGET_FPS = 30  # while a destination label is scrolling
+IDLE_FPS = 4  # otherwise only the clock/minutes change (at most once a second)
 # A station renders dimmed once its last successful poll is older than this
 # many poll intervals (with a floor so short intervals don't flicker stale).
 STALE_POLLS = 3
@@ -143,14 +144,16 @@ def main(argv: list[str]) -> int:
     signal.signal(signal.SIGTERM, _handle_signal)
     signal.signal(signal.SIGINT, _handle_signal)
 
-    target_dt = 1.0 / TARGET_FPS
     try:
         while not stopping.is_set():
             frame_start = time.time()
             clock_text = datetime.now().strftime("%H:%M")
             groups = _build_groups(config, state, lock, frame_start)
-            renderer.render(groups, clock_text, frame_start)
+            scrolling = renderer.render(groups, clock_text, frame_start)
 
+            # Full rate only while something scrolls; idle costs a Pi 3 much
+            # less CPU (and heat) and nothing else changes faster than 1/s.
+            target_dt = 1.0 / (TARGET_FPS if scrolling else IDLE_FPS)
             elapsed = time.time() - frame_start
             time.sleep(max(0.0, target_dt - elapsed))
     finally:

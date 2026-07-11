@@ -14,8 +14,9 @@ scrolling destination labels.
 
 `config.json` → `config.py` (load/validate) → poller thread in `__main__.py`
 fetches each station once/minute via `transport.py` → shared `state` dict (under
-a lock) holds raw `Departure`s → 30fps render loop builds `StationGroup`s
-(`layout.py` composes a PIL frame) → `renderer.py` pushes it to the panel.
+a lock) holds raw `Departure`s → render loop (30fps while a label scrolls, 4fps
+idle) builds `StationGroup`s (`layout.py` composes a PIL frame) → `renderer.py`
+pushes it to the panel.
 
 | File | Responsibility |
 |------|----------------|

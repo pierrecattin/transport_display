@@ -134,10 +134,14 @@ class FrameComposer:
         self.scroll_px_per_sec = scroll_px_per_sec
         # key -> (offset_px, last_wall_time) for continuous scrolling.
         self._offsets: dict[str, tuple[float, float]] = {}
+        # Whether the most recent compose() drew any scrolling row. The render
+        # loop uses this to drop to a low idle frame rate when nothing moves.
+        self.scrolling = False
 
     def compose(self, groups: list[StationGroup], clock_text: str, now: float) -> Image.Image:
         img = Image.new("RGB", (PANEL_W, PANEL_H))
         draw = ImageDraw.Draw(img)
+        self.scrolling = False
 
         clock_w = text_w(self.header_font, clock_text)
         clock_x = PANEL_W - clock_w
@@ -217,6 +221,7 @@ class FrameComposer:
             draw.text((x0, y), text, font=self.body_font, fill=fill)
             return
 
+        self.scrolling = True
         period = w + SCROLL_GAP
         off = self._scroll_offset(key, now, period)
         col = Image.new("RGB", (col_w, self.row_h))
