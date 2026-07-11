@@ -33,12 +33,14 @@ from fastapi.staticfiles import StaticFiles
 from src.config import (
     COLOR_DEFAULTS,
     COLOR_ROLES,
+    DISPLAY_BOUNDS,
     DISPLAY_DEFAULTS,
+    FONTS_DIR,
     Config,
     ConfigError,
     load_config,
 )
-from src.layout import FONTS_DIR, FrameComposer, StationGroup
+from src.layout import FrameComposer, StationGroup
 from src.transport import Departure
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -48,15 +50,27 @@ DISPLAY_SERVICE = os.environ.get("TRANSPORT_DISPLAY_SERVICE", "transport_display
 # Set on the dev machine so saving doesn't try to poke a non-existent service.
 NO_RESTART = bool(os.environ.get("TRANSPORT_DISPLAY_NO_RESTART"))
 
-# Hints for the "display" number inputs (key -> sensible UI bounds).
+# Label + input step for the "display" number inputs; min/max come from
+# src.config.DISPLAY_BOUNDS (also enforced server-side) so UI hints and
+# validation can't drift apart.
+_DISPLAY_FIELD_UI: list[tuple[str, str, int]] = [
+    ("brightness", "Brightness", 1),
+    ("poll_interval_sec", "Poll interval (s)", 5),
+    ("api_limit", "API limit", 1),
+    ("scroll_px_per_sec", "Scroll speed (px/s)", 1),
+    ("gpio_slowdown", "GPIO slowdown", 1),
+    ("pwm_bits", "PWM bits", 1),
+    ("pwm_lsb_nanoseconds", "PWM LSB (ns)", 10),
+]
 DISPLAY_FIELDS: list[dict[str, Any]] = [
-    {"key": "brightness", "label": "Brightness", "min": 1, "max": 100, "step": 1},
-    {"key": "poll_interval_sec", "label": "Poll interval (s)", "min": 10, "max": 600, "step": 5},
-    {"key": "api_limit", "label": "API limit", "min": 1, "max": 100, "step": 1},
-    {"key": "scroll_px_per_sec", "label": "Scroll speed (px/s)", "min": 0, "max": 100, "step": 1},
-    {"key": "gpio_slowdown", "label": "GPIO slowdown", "min": 0, "max": 5, "step": 1},
-    {"key": "pwm_bits", "label": "PWM bits", "min": 1, "max": 11, "step": 1},
-    {"key": "pwm_lsb_nanoseconds", "label": "PWM LSB (ns)", "min": 50, "max": 3000, "step": 10},
+    {
+        "key": key,
+        "label": label,
+        "min": DISPLAY_BOUNDS[key][0],
+        "max": DISPLAY_BOUNDS[key][1],
+        "step": step,
+    }
+    for key, label, step in _DISPLAY_FIELD_UI
 ]
 
 COLOR_ROLE_LABELS: dict[str, str] = {

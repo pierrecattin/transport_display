@@ -54,6 +54,51 @@ def test_display_defaults_when_absent(tmp_path: Path) -> None:
     assert cfg.display.font == "6x10"
 
 
+def test_rejects_non_numeric_display_value(tmp_path: Path) -> None:
+    for bad in ("high", None, True, [60]):
+        p = _write(tmp_path, {
+            "stations": [{"id": "1", "display_name": "S", "min_time": 0,
+                          "connections": [{"number": "9", "destination": "X"}]}],
+            "destination_labels": {},
+            "display": {"brightness": bad},
+        })
+        with pytest.raises(ConfigError):
+            load_config(p)
+
+
+def test_rejects_out_of_range_display_value(tmp_path: Path) -> None:
+    for key, bad in (("brightness", 0), ("brightness", 101), ("pwm_bits", 12)):
+        p = _write(tmp_path, {
+            "stations": [{"id": "1", "display_name": "S", "min_time": 0,
+                          "connections": [{"number": "9", "destination": "X"}]}],
+            "destination_labels": {},
+            "display": {key: bad},
+        })
+        with pytest.raises(ConfigError):
+            load_config(p)
+
+
+def test_rejects_unknown_font(tmp_path: Path) -> None:
+    p = _write(tmp_path, {
+        "stations": [{"id": "1", "display_name": "S", "min_time": 0,
+                      "connections": [{"number": "9", "destination": "X"}]}],
+        "destination_labels": {},
+        "display": {"font": "9x18"},
+    })
+    with pytest.raises(ConfigError):
+        load_config(p)
+
+
+def test_accepts_integer_scroll_speed(tmp_path: Path) -> None:
+    p = _write(tmp_path, {
+        "stations": [{"id": "1", "display_name": "S", "min_time": 0,
+                      "connections": [{"number": "9", "destination": "X"}]}],
+        "destination_labels": {},
+        "display": {"scroll_px_per_sec": 15},
+    })
+    assert load_config(p).display.scroll_px_per_sec == 15.0
+
+
 def test_colors_parsed_from_fixture() -> None:
     cfg = load_config(FIXTURE_CONFIG)
     assert cfg.colors.clock == (255, 255, 255)

@@ -22,13 +22,11 @@ from pathlib import Path
 
 from PIL import BdfFontFile, Image, ImageDraw, ImageFont
 
-from .config import Colors
+from .config import FONTS_DIR, Colors
 from .transport import Departure
 
 PANEL_W = 128
 PANEL_H = 64
-
-FONTS_DIR = Path(__file__).resolve().parent.parent / "fonts"
 # Per-user cache: on the Pi the display service compiles fonts as root while
 # the web UI's preview runs as an unprivileged user; a shared dir would leave
 # the latter unable to write newly selected fonts (root-owned, mode 755).
