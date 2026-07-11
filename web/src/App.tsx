@@ -5,6 +5,7 @@ import StationsSection from "./components/StationsSection";
 import DisplaySection from "./components/DisplaySection";
 import FontsSection from "./components/FontsSection";
 import ColorsSection from "./components/ColorsSection";
+import WeatherSection from "./components/WeatherSection";
 import Preview from "./components/Preview";
 
 type Banner = { kind: "ok" | "error" | "info"; text: string };
@@ -118,6 +119,7 @@ export default function App() {
       <div className="layout">
         <main className="form">
           <StationsSection config={config} onChange={setConfig} />
+          <WeatherSection config={config} onChange={setConfig} />
           <DisplaySection config={config} meta={meta} onChange={setConfig} />
           <FontsSection config={config} fonts={fonts} onChange={setConfig} />
           <ColorsSection config={config} meta={meta} onChange={setConfig} />

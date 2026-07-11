@@ -24,11 +24,16 @@ export interface DisplayConfig {
   pwm_lsb_nanoseconds: number;
 }
 
+export interface WeatherConfig {
+  url: string; // GW3000 get_livedata_info endpoint; empty disables the feature
+}
+
 export interface Config {
   stations: Station[];
   destination_labels: Record<string, string>;
   display: DisplayConfig;
   colors: Record<string, string>; // role -> "#RRGGBB"
+  weather?: WeatherConfig; // optional: older configs predate it
 }
 
 export interface DisplayField {

@@ -65,7 +65,7 @@ DISPLAY_BOUNDS: dict[str, tuple[int, int]] = {
 # These mirror what layout.py used to hardcode; the optional "colors" section
 # overrides any subset. ``COLOR_ROLES`` fixes the field order (used by the web
 # UI and by ``_parse_colors``).
-COLOR_ROLES = ("clock", "header", "number", "dest", "minutes")
+COLOR_ROLES = ("clock", "header", "number", "dest", "minutes", "temp_in", "temp_out")
 
 COLOR_DEFAULTS: dict[str, str] = {
     "clock": "#FFB000",  # amber
@@ -73,6 +73,8 @@ COLOR_DEFAULTS: dict[str, str] = {
     "number": "#FFDC00",  # yellow
     "dest": "#EBEBEB",  # near-white
     "minutes": "#00E650",  # green
+    "temp_in": "#FFB000",  # amber (indoor temperature)
+    "temp_out": "#00C8FF",  # cyan (outdoor temperature)
 }
 
 
@@ -135,6 +137,15 @@ class Colors:
     number: RGB = _hex_to_rgb(COLOR_DEFAULTS["number"])
     dest: RGB = _hex_to_rgb(COLOR_DEFAULTS["dest"])
     minutes: RGB = _hex_to_rgb(COLOR_DEFAULTS["minutes"])
+    temp_in: RGB = _hex_to_rgb(COLOR_DEFAULTS["temp_in"])
+    temp_out: RGB = _hex_to_rgb(COLOR_DEFAULTS["temp_out"])
+
+
+@dataclass(frozen=True)
+class Weather:
+    """The optional weather-gateway integration; an empty URL disables it."""
+
+    url: str = ""
 
 
 @dataclass
@@ -142,6 +153,7 @@ class Config:
     stations: list[Station]
     display: Display = field(default_factory=Display)
     colors: Colors = field(default_factory=Colors)
+    weather: Weather = field(default_factory=Weather)
 
 
 class ConfigError(ValueError):
@@ -237,7 +249,8 @@ def parse_config(raw: object) -> Config:
 
     display = _parse_display(raw.get("display", {}))
     colors = _parse_colors(raw.get("colors", {}))
-    return Config(stations=stations, display=display, colors=colors)
+    weather = _parse_weather(raw.get("weather", {}))
+    return Config(stations=stations, display=display, colors=colors, weather=weather)
 
 
 def _parse_display(raw: object) -> Display:
@@ -284,6 +297,17 @@ def _parse_display(raw: object) -> Display:
         pwm_bits=_int("pwm_bits", DISPLAY_DEFAULTS["pwm_bits"]),
         pwm_lsb_nanoseconds=_int("pwm_lsb_nanoseconds", DISPLAY_DEFAULTS["pwm_lsb_nanoseconds"]),
     )
+
+
+def _parse_weather(raw: object) -> Weather:
+    if not isinstance(raw, dict):
+        raise ConfigError("'weather' must be an object if present")
+    url = raw.get("url", "")
+    if not isinstance(url, str):
+        raise ConfigError("weather.url must be a string")
+    if url and not url.startswith(("http://", "https://")):
+        raise ConfigError("weather.url must start with http:// or https://")
+    return Weather(url=url)
 
 
 def _parse_one_color(where: str, value: object) -> RGB:

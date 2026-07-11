@@ -6,7 +6,7 @@ hardware I/O lives in :mod:`renderer`.
 
 Layout (grouped by station, soonest departures that fit):
 
-    Buchegg            16:32      <- station header (left) + clock (right)
+    Buchegg 26.1° 34.7° 16:32     <- station header, in/out temps, clock
     40  Bucheggplatz       4'     <- number | dest (scrolls if long) | mins'
     Neuaffolt
     32  Strassenverkeh…    7'
@@ -61,6 +61,25 @@ class StationGroup:
         self.station_id = station_id
         self.name = name
         self.departures = departures
+        self.stale = stale
+
+
+class TempReadout:
+    """Indoor/outdoor temperatures (°C) for the top row, next to the clock.
+
+    Either value may be ``None`` (sensor missing from the gateway response);
+    ``stale`` marks readings whose last successful fetch is old, drawn dimmed
+    like a stale station group.
+    """
+
+    def __init__(
+        self,
+        indoor: float | None,
+        outdoor: float | None,
+        stale: bool = False,
+    ) -> None:
+        self.indoor = indoor
+        self.outdoor = outdoor
         self.stale = stale
 
 
@@ -138,7 +157,13 @@ class FrameComposer:
         # loop uses this to drop to a low idle frame rate when nothing moves.
         self.scrolling = False
 
-    def compose(self, groups: list[StationGroup], clock_text: str, now: float) -> Image.Image:
+    def compose(
+        self,
+        groups: list[StationGroup],
+        clock_text: str,
+        now: float,
+        temps: TempReadout | None = None,
+    ) -> Image.Image:
         img = Image.new("RGB", (PANEL_W, PANEL_H))
         draw = ImageDraw.Draw(img)
         self.scrolling = False
@@ -146,13 +171,30 @@ class FrameComposer:
         clock_w = text_w(self.header_font, clock_text)
         clock_x = PANEL_W - clock_w
 
+        # Temperatures sit right-aligned against the clock: indoor, outdoor,
+        # clock. Lay them out right-to-left so the first header knows where the
+        # top-right block starts.
+        temp_texts: list[tuple[int, str, RGB]] = []  # (x, text, fill)
+        top_x0 = clock_x  # leftmost x of the clock+temps block
+        if temps is not None:
+            for value, color in (
+                (temps.outdoor, self.colors.temp_out),
+                (temps.indoor, self.colors.temp_in),
+            ):
+                if value is None:
+                    continue
+                text = f"{value:.1f}°"
+                top_x0 -= ZONE_GAP + text_w(self.header_font, text)
+                fill = _dim(color) if temps.stale else color
+                temp_texts.append((top_x0, text, fill))
+
         seen: set[str] = set()
         y = 0
         for group in groups:
             if y + self.header_h > PANEL_H:
                 break
-            # First header shares the top row with the clock; clip it short.
-            header_max = (clock_x - ZONE_GAP) if y == 0 else PANEL_W
+            # First header shares the top row with the clock/temps; clip it short.
+            header_max = (top_x0 - ZONE_GAP) if y == 0 else PANEL_W
             header = fit_text(self.header_font, group.name, max(0, header_max))
             header_fill = _dim(self.colors.header) if group.stale else self.colors.header
             draw.text((0, y), header, font=self.header_font, fill=header_fill)
@@ -171,8 +213,10 @@ class FrameComposer:
                 break  # screen is full -> stop adding stations
             y += STATION_GAP
 
-        # Clock drawn last so nothing overlaps it.
+        # Clock and temps drawn last so nothing overlaps them.
         draw.text((clock_x, 0), clock_text, font=self.header_font, fill=self.colors.clock)
+        for x, text, fill in temp_texts:
+            draw.text((x, 0), text, font=self.header_font, fill=fill)
 
         # Forget scroll state for rows no longer shown (bounds the dict).
         self._offsets = {k: v for k, v in self._offsets.items() if k in seen}

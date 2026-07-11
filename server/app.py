@@ -40,7 +40,7 @@ from src.config import (
     ConfigError,
     parse_config,
 )
-from src.layout import FrameComposer, StationGroup
+from src.layout import FrameComposer, StationGroup, TempReadout
 from src.transport import Departure
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -82,6 +82,8 @@ COLOR_ROLE_LABELS: dict[str, str] = {
     "number": "Bus number",
     "dest": "Destination",
     "minutes": "Minutes",
+    "temp_in": "Temp inside",
+    "temp_out": "Temp outside",
 }
 
 app = FastAPI(title="Transport display config")
@@ -243,7 +245,10 @@ def post_preview(
     except (FileNotFoundError, OSError) as exc:
         raise HTTPException(status_code=400, detail=f"font error: {exc}")
 
-    img = composer.compose(_sample_groups(cfg), "16:32", now=2.0)
+    # Sample temps (never fetched from the gateway) so the preview shows the
+    # top-row squeeze whenever the weather integration is enabled.
+    temps = TempReadout(21.5, 34.7) if cfg.weather.url else None
+    img = composer.compose(_sample_groups(cfg), "16:32", now=2.0, temps=temps)
     big = img.resize((img.width * scale, img.height * scale), resample=0)  # nearest
     buf = io.BytesIO()
     big.save(buf, format="PNG")

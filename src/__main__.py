@@ -25,9 +25,10 @@ from .transport import (
     parse_departures,
     visible_departures,
 )
+from .weather import Temps, fetch_weather
 
 if TYPE_CHECKING:
-    from .layout import StationGroup
+    from .layout import StationGroup, TempReadout
 
 log = logging.getLogger("transport_display")
 
@@ -49,13 +50,29 @@ class StationState:
     last_ok: float | None = None  # wall time of last successful fetch
 
 
-class Poller(threading.Thread):
-    """Fetches every station once per ``poll_interval_sec`` until stopped."""
+@dataclass
+class WeatherState:
+    """Latest known weather-gateway readings (shared between threads)."""
 
-    def __init__(self, config: Config, state: dict[str, StationState], lock: threading.Lock):
+    temps: Temps | None = None
+    last_ok: float | None = None  # wall time of last successful fetch
+
+
+class Poller(threading.Thread):
+    """Fetches every station (and the weather gateway, when configured) once
+    per ``poll_interval_sec`` until stopped."""
+
+    def __init__(
+        self,
+        config: Config,
+        state: dict[str, StationState],
+        weather: WeatherState,
+        lock: threading.Lock,
+    ):
         super().__init__(name="poller", daemon=True)
         self._config = config
         self._state = state
+        self._weather = weather
         self._lock = lock
         self._stop = threading.Event()
 
@@ -87,6 +104,19 @@ class Poller(threading.Thread):
                 st.last_ok = time.time()
             log.info("Polled %s (%s): %d matching", station.id, station.display_name, len(deps))
 
+        if self._config.weather.url and not self._stop.is_set():
+            temps = fetch_weather(self._config.weather.url)
+            if temps is not None:  # on failure keep last good data
+                with self._lock:
+                    self._weather.temps = temps
+                    self._weather.last_ok = time.time()
+                log.info("Polled weather: in=%s out=%s", temps.indoor, temps.outdoor)
+
+
+def _stale_after(config: Config) -> float:
+    """Age (seconds) past which un-refreshed data renders dimmed."""
+    return max(STALE_POLLS * config.display.poll_interval_sec, STALE_MIN_SEC)
+
 
 def _build_groups(
     config: Config,
@@ -96,7 +126,7 @@ def _build_groups(
 ) -> list[StationGroup]:
     from .layout import StationGroup  # local import keeps rgbmatrix off the dev path
 
-    stale_after = max(STALE_POLLS * config.display.poll_interval_sec, STALE_MIN_SEC)
+    stale_after = _stale_after(config)
     groups: list[StationGroup] = []
     with lock:
         for station in config.stations:
@@ -115,6 +145,25 @@ def _build_groups(
     return groups
 
 
+def _build_temps(
+    config: Config,
+    weather: WeatherState,
+    lock: threading.Lock,
+    now: float,
+) -> TempReadout | None:
+    from .layout import TempReadout  # local import keeps rgbmatrix off the dev path
+
+    with lock:
+        temps, last_ok = weather.temps, weather.last_ok
+    if temps is None or last_ok is None:
+        return None  # never fetched: draw nothing rather than a fake reading
+    return TempReadout(
+        indoor=temps.indoor,
+        outdoor=temps.outdoor,
+        stale=now - last_ok > _stale_after(config),
+    )
+
+
 def main(argv: list[str]) -> int:
     logging.basicConfig(
         level=logging.INFO,
@@ -125,9 +174,10 @@ def main(argv: list[str]) -> int:
     log.info("Loaded config: %d stations", len(config.stations))
 
     state: dict[str, StationState] = {s.id: StationState() for s in config.stations}
+    weather = WeatherState()
     lock = threading.Lock()
 
-    poller = Poller(config, state, lock)
+    poller = Poller(config, state, weather, lock)
     poller.start()
 
     # Renderer import is deferred so config errors surface even off-Pi.
@@ -149,7 +199,8 @@ def main(argv: list[str]) -> int:
             frame_start = time.time()
             clock_text = datetime.now().strftime("%H:%M")
             groups = _build_groups(config, state, lock, frame_start)
-            scrolling = renderer.render(groups, clock_text, frame_start)
+            temps = _build_temps(config, weather, lock, frame_start)
+            scrolling = renderer.render(groups, clock_text, frame_start, temps)
 
             # Full rate only while something scrolls; idle costs a Pi 3 much
             # less CPU (and heat) and nothing else changes faster than 1/s.

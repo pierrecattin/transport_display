@@ -14,7 +14,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from src.config import DISPLAY_BOUNDS
+from src.config import COLOR_ROLES, DISPLAY_BOUNDS
 
 FIXTURE_CONFIG = Path(__file__).parent / "fixtures" / "config.json"
 
@@ -97,3 +97,24 @@ def test_meta_bounds_match_validation(client: tuple[TestClient, Path]) -> None:
     fields = {f["key"]: f for f in r.json()["display_fields"]}
     for key, (lo, hi) in DISPLAY_BOUNDS.items():
         assert (fields[key]["min"], fields[key]["max"]) == (lo, hi)
+
+
+def test_meta_lists_every_color_role(client: tuple[TestClient, Path]) -> None:
+    tc, _ = client
+    r = tc.get("/api/meta")
+    assert r.status_code == 200
+    roles = [role["key"] for role in r.json()["color_roles"]]
+    assert roles == list(COLOR_ROLES)  # includes temp_in/temp_out, all labelled
+
+
+def test_preview_accepts_weather_section(client: tuple[TestClient, Path]) -> None:
+    tc, cfg_path = client
+    payload = json.loads(cfg_path.read_text(encoding="utf-8"))
+    payload["weather"] = {"url": "http://192.168.1.219/get_livedata_info"}
+    # The preview draws sample temps; it must never call out to the gateway.
+    r = tc.post("/api/preview", json=payload)
+    assert r.status_code == 200
+    assert r.content[:8] == b"\x89PNG\r\n\x1a\n"
+
+    payload["weather"] = {"url": "not a url"}
+    assert tc.post("/api/preview", json=payload).status_code == 400
