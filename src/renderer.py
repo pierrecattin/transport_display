@@ -16,11 +16,11 @@ import logging
 from rgbmatrix import RGBMatrix, RGBMatrixOptions
 
 from .config import Config
-from .layout import PANEL_H, PANEL_W, FrameComposer, StationGroup
+from .layout import PANEL_H, PANEL_W, FrameComposer, StationGroup, TempReadout
 
 log = logging.getLogger(__name__)
 
-__all__ = ["Renderer", "StationGroup"]
+__all__ = ["Renderer", "StationGroup", "TempReadout"]
 
 
 class Renderer:
@@ -49,13 +49,19 @@ class Renderer:
         self.matrix = RGBMatrix(options=options)
         self.canvas = self.matrix.CreateFrameCanvas()
 
-    def render(self, groups: list[StationGroup], clock_text: str, now: float) -> bool:
+    def render(
+        self,
+        groups: list[StationGroup],
+        clock_text: str,
+        now: float,
+        temps: TempReadout | None = None,
+    ) -> bool:
         """Compose and display one frame.
 
         Returns whether the frame contains scrolling content, so the caller
         can drop to a low idle frame rate when nothing moves.
         """
-        img = self.composer.compose(groups, clock_text, now)
+        img = self.composer.compose(groups, clock_text, now, temps)
         self.canvas.SetImage(img, 0, 0)
         self.canvas = self.matrix.SwapOnVSync(self.canvas)
         return self.composer.scrolling

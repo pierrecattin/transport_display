@@ -7,21 +7,24 @@ hardware/setup story; this file covers what's non-obvious when editing the code.
 
 A headless Raspberry Pi 3B drives a 128×64 HUB75E RGB LED matrix (Adafruit RGB
 Matrix Bonnet #3211) to show next VBZ bus departures from
-`transport.opendata.ch`, grouped by station, with a clock and horizontally
-scrolling destination labels.
+`transport.opendata.ch`, grouped by station, with a clock, optionally the
+inside/outside temperature from an Ecowitt weather gateway (GW3000) on the LAN,
+and horizontally scrolling destination labels.
 
 ## Architecture (data flow)
 
 `config.json` → `config.py` (load/validate) → poller thread in `__main__.py`
-fetches each station once/minute via `transport.py` → shared `state` dict (under
-a lock) holds raw `Departure`s → render loop (30fps while a label scrolls, 4fps
-idle) builds `StationGroup`s (`layout.py` composes a PIL frame) → `renderer.py`
-pushes it to the panel.
+fetches each station once/minute via `transport.py` (plus the weather gateway
+via `weather.py`, when configured) → shared state under one lock holds raw
+`Departure`s + the latest `Temps` → render loop (30fps while a label scrolls,
+4fps idle) builds `StationGroup`s/`TempReadout` (`layout.py` composes a PIL
+frame) → `renderer.py` pushes it to the panel.
 
 | File | Responsibility |
 |------|----------------|
-| `src/config.py` | Parse/validate `config.json`; dataclasses `Config/Station/Connection/Display`. Resolves each connection's on-screen `label`. |
+| `src/config.py` | Parse/validate `config.json`; dataclasses `Config/Station/Connection/Display/Weather`. Resolves each connection's on-screen `label`. |
 | `src/transport.py` | API client + parsing. `parse_departures` matches on `(number, to)`; `visible_departures` applies `min_time` + live countdown. No rendering. |
+| `src/weather.py` | Ecowitt gateway client: `fetch_weather` GETs `get_livedata_info`, `parse_livedata` extracts outdoor (`common_list` id `0x02`) + indoor (`wh25[0].intemp`) into `Temps`. No rendering. |
 | `src/layout.py` | **Pure PIL, no `rgbmatrix` import.** `FrameComposer.compose()` builds the 128×64 image; holds fonts, column geometry, and scroll state. |
 | `src/renderer.py` | **Only** module importing `rgbmatrix`. Thin wrapper: options + `SetImage`/`SwapOnVSync`. |
 | `src/__main__.py` | `Poller` thread + render loop + signal-based shutdown. Entry: `python3 -m src`. |
@@ -48,6 +51,13 @@ pushes it to the panel.
   move that logic into the poller. A station whose last successful poll is older
   than `STALE_POLLS` intervals renders dimmed (`StationGroup.stale`), so an
   outage doesn't masquerade as a live board.
+- **Weather is optional and config-gated.** An empty/absent `weather.url`
+  disables it entirely (the poller never calls the gateway). Temps are drawn in
+  the header font left of the clock, indoor (`temp_in` colour) then outdoor
+  (`temp_out`), one decimal; a `None` value (unpaired sensor) is skipped, and the
+  first station header clips short of the block. Staleness reuses the station
+  rule (`_stale_after`) → dimmed `TempReadout`; nothing is drawn before the first
+  successful fetch.
 - **Fonts are BDF → PIL.** Pillow can't read `.bdf` at draw time, so `layout.py`
   compiles them once (`BdfFontFile`) into a temp cache. PIL *bitmap* fonts have no
   `getmetrics()`; use `font_height()`/`text_w()` (getbbox/getlength) instead.

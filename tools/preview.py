@@ -12,7 +12,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from src.config import load_config  # noqa: E402
-from src.layout import FrameComposer, StationGroup  # noqa: E402
+from src.layout import FrameComposer, StationGroup, TempReadout  # noqa: E402
 from src.transport import Departure  # noqa: E402
 
 
@@ -53,7 +53,8 @@ def main() -> None:
         ),
     ]
 
-    img = composer.compose(groups, "16:32", now=2.0)  # now>0 -> some scroll offset
+    temps = TempReadout(21.5, 34.7)  # representative in/out readings
+    img = composer.compose(groups, "16:32", now=2.0, temps=temps)  # now>0 -> some scroll offset
     big = img.resize((img.width * scale, img.height * scale), resample=0)  # nearest
     big.save(out)
     print(f"Wrote {out} ({img.width}x{img.height} scaled x{scale})")

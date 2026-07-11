@@ -150,6 +150,51 @@ def test_rejects_bad_hex_color(tmp_path: Path) -> None:
             load_config(p)
 
 
+def test_weather_disabled_when_absent(tmp_path: Path) -> None:
+    p = _write(tmp_path, {
+        "stations": [{"id": "1", "display_name": "S", "min_time": 0,
+                      "connections": [{"number": "9", "destination": "X"}]}],
+        "destination_labels": {},
+    })
+    assert load_config(p).weather.url == ""
+
+
+def test_weather_url_parsed(tmp_path: Path) -> None:
+    p = _write(tmp_path, {
+        "stations": [{"id": "1", "display_name": "S", "min_time": 0,
+                      "connections": [{"number": "9", "destination": "X"}]}],
+        "destination_labels": {},
+        "weather": {"url": "http://192.168.1.219/get_livedata_info"},
+    })
+    assert load_config(p).weather.url == "http://192.168.1.219/get_livedata_info"
+
+
+def test_rejects_bad_weather_values(tmp_path: Path) -> None:
+    # Non-object section, non-string url, and a non-http(s) scheme all fail
+    # validation; an explicitly empty url stays valid (feature off).
+    for section in ("nope", {"url": 42}, {"url": "192.168.1.219/x"}, {"url": "ftp://x"}):
+        p = _write(tmp_path, {
+            "stations": [{"id": "1", "display_name": "S", "min_time": 0,
+                          "connections": [{"number": "9", "destination": "X"}]}],
+            "destination_labels": {},
+            "weather": section,
+        })
+        with pytest.raises(ConfigError):
+            load_config(p)
+
+
+def test_temp_color_defaults_and_overrides(tmp_path: Path) -> None:
+    p = _write(tmp_path, {
+        "stations": [{"id": "1", "display_name": "S", "min_time": 0,
+                      "connections": [{"number": "9", "destination": "X"}]}],
+        "destination_labels": {},
+        "colors": {"temp_out": "#123456"},
+    })
+    cfg = load_config(p)
+    assert cfg.colors.temp_in == (255, 176, 0)  # default #FFB000
+    assert cfg.colors.temp_out == (0x12, 0x34, 0x56)
+
+
 def test_missing_label_falls_back_to_stripped_city(tmp_path: Path) -> None:
     p = _write(tmp_path, {
         "stations": [{"id": "1", "display_name": "Somewhere", "min_time": 0,

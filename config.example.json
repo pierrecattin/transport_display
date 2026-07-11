@@ -53,6 +53,11 @@
         "header": "#001361",
         "number": "#FFFFFF",
         "dest": "#9AAEFE",
-        "minutes": "#FFFFFF"
+        "minutes": "#FFFFFF",
+        "temp_in": "#FFB000",
+        "temp_out": "#00C8FF"
+    },
+    "weather": {
+        "url": "http://192.168.1.219/get_livedata_info"
     }
 }

@@ -8,7 +8,7 @@ Zürich VBZ stops, using live data from
 For each stop it shows, grouped by station:
 
 ```
-Buchegg            16:32      ← station header (left) + clock (top-right)
+Buchegg 26.1° 34.7° 16:32     ← station header | in/out temperature | clock
 40  Bucheggplatz       4'     ← bus number | destination | minutes to departure
 Neuaffolt
 32  Strassenverkeh…    7'     ← long destinations scroll horizontally
@@ -20,12 +20,17 @@ Neuaffolt
   (right, `N'`) — using the API's realtime estimate when it provides one, the
   planned time otherwise.
 - **Clock** (`HH:MM`) top-right.
+- Optionally, the **inside and outside temperature** next to the clock, read from
+  an Ecowitt weather gateway (e.g. a GW3000) on the LAN via its local
+  `get_livedata_info` endpoint — inside first, told apart by colour.
 - Departures leaving sooner than a per-station `min_time` are hidden.
 - Only the soonest departures that fit on the panel are shown.
-- The API is polled once per minute; the minute countdown and `min_time` filter are
-  recomputed every frame, so the board stays live between polls.
-- If a station's polls keep failing (network/API outage), its rows dim after a few
-  minutes instead of pretending to be live, and recover on the next good poll.
+- The transport API (and the weather gateway, when configured) is polled once per
+  minute; the minute countdown and `min_time` filter are recomputed every frame,
+  so the board stays live between polls.
+- If a station's (or the gateway's) polls keep failing (network/API outage), its
+  rows dim after a few minutes instead of pretending to be live, and recover on
+  the next good poll.
 
 ## Hardware needed
 
@@ -56,6 +61,7 @@ src/
   __main__.py               # poller thread + render loop + clean shutdown
   config.py                 # load/validate config.json
   transport.py              # API client, parsing, filtering, countdown
+  weather.py                # Ecowitt gateway client (inside/outside temperature)
   layout.py                 # pure-PIL frame composition (no hardware dep)
   renderer.py               # rgbmatrix hardware I/O
 server/                     # FastAPI backend for the config web UI (no hardware dep)
@@ -96,7 +102,13 @@ checkout on the Pi. On a dev machine, tools fall back to the example until you
   // optional; per-role render colours as #RRGGBB, defaults shown
   "colors": {
     "clock": "#FFB000", "header": "#00C8FF", "number": "#FFDC00",
-    "dest": "#EBEBEB", "minutes": "#00E650"
+    "dest": "#EBEBEB", "minutes": "#00E650",
+    "temp_in": "#FFB000", "temp_out": "#00C8FF"
+  },
+  // optional; inside/outside temperature from an Ecowitt gateway (GW3000 etc.)
+  // next to the clock. Empty or absent URL disables the feature.
+  "weather": {
+    "url": "http://192.168.1.219/get_livedata_info"
   }
 }
 ```
@@ -115,8 +127,9 @@ stripped.
 
 A small React app (served by a FastAPI backend, both on the Pi) lets you edit
 the whole config from a browser on the LAN — stations & connections, destination
-labels, the `display` tunables, the fonts, and the five render colours — with a
-**live PNG preview** of the panel before you apply. After installing (it's part
+labels, the weather-gateway URL, the `display` tunables, the fonts, and the
+per-role render colours — with a **live PNG preview** of the panel before you
+apply. After installing (it's part
 of `setup_pi.sh`), open:
 
 ```

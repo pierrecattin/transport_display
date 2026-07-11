@@ -6,8 +6,10 @@ from src.config import Colors, load_config
 from src.layout import (
     PANEL_H,
     PANEL_W,
+    ZONE_GAP,
     FrameComposer,
     StationGroup,
+    TempReadout,
     _dim,
     fit_text,
     text_w,
@@ -92,3 +94,58 @@ def test_stale_group_renders_dimmer() -> None:
 def test_dim_scales_down_but_keeps_visible() -> None:
     assert _dim((255, 100, 0)) == (102, 40, 0)
     assert _dim(Colors().clock) < Colors().clock
+
+
+def test_temps_drawn_in_their_roles_colors() -> None:
+    c = _composer()
+    img = c.compose([_group("Kurz")], "16:32", now=0.0, temps=TempReadout(21.5, 34.7))
+    top = img.crop((0, 0, PANEL_W, c.header_h))
+    colors = {px for px in top.getdata()}
+    assert c.colors.temp_in in colors
+    assert c.colors.temp_out in colors
+
+
+def test_stale_temps_render_dimmed() -> None:
+    c = _composer()
+    img = c.compose(
+        [_group("Kurz")], "16:32", now=0.0, temps=TempReadout(21.5, 34.7, stale=True)
+    )
+    colors = {px for px in img.crop((0, 0, PANEL_W, c.header_h)).getdata()}
+    assert c.colors.temp_in not in colors
+    assert c.colors.temp_out not in colors
+    assert _dim(c.colors.temp_in) in colors
+    assert _dim(c.colors.temp_out) in colors
+
+
+def test_none_temp_values_skipped() -> None:
+    c = _composer()
+    img = c.compose(
+        [_group("Kurz")], "16:32", now=0.0, temps=TempReadout(None, 34.7)
+    )
+    colors = {px for px in img.crop((0, 0, PANEL_W, c.header_h)).getdata()}
+    assert c.colors.temp_in not in colors
+    assert c.colors.temp_out in colors
+
+
+def test_first_header_clipped_short_of_temps() -> None:
+    c = _composer()
+    long_group = StationGroup(
+        station_id="1",
+        name="Ein extrem langer Stationsname der alles ueberlappen wuerde",
+        departures=[(_dep("9", "Kurz"), 5)],
+    )
+    # Without temps the long header may run right up to the clock; with temps
+    # it must stop short of the temperature block.
+    img = c.compose([long_group], "16:32", now=0.0, temps=TempReadout(21.5, 34.7))
+    f = c.header_font
+    clock_x = PANEL_W - text_w(f, "16:32")
+    top_x0 = clock_x - (text_w(f, "34.7°") + ZONE_GAP) - (text_w(f, "21.5°") + ZONE_GAP)
+    right_of_block = img.crop((top_x0, 0, PANEL_W, c.header_h))
+    assert c.colors.header not in set(right_of_block.getdata())
+
+
+def test_compose_without_temps_unchanged() -> None:
+    c = _composer()
+    explicit = c.compose([_group("Kurz")], "16:32", now=0.0, temps=None)
+    implicit = c.compose([_group("Kurz")], "16:32", now=0.0)
+    assert list(explicit.getdata()) == list(implicit.getdata())
