@@ -36,8 +36,13 @@ export interface Config {
   weather?: WeatherConfig; // optional: older configs predate it
 }
 
+// The display keys with numeric values (the fonts are edited elsewhere).
+export type NumericDisplayKey = {
+  [K in keyof DisplayConfig]: DisplayConfig[K] extends number ? K : never;
+}[keyof DisplayConfig];
+
 export interface DisplayField {
-  key: keyof DisplayConfig;
+  key: NumericDisplayKey;
   label: string;
   min: number;
   max: number;

@@ -102,6 +102,11 @@ select {
   font-size: 14px;
 }
 
+input::placeholder {
+  color: var(--muted);
+  opacity: 0.6;
+}
+
 input:focus,
 select:focus {
   outline: none;

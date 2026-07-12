@@ -1,4 +1,5 @@
 import type { Config, Connection, Station } from "../types";
+import NumberInput from "./NumberInput";
 
 interface Props {
   config: Config;
@@ -61,13 +62,12 @@ export default function StationsSection({ config, onChange }: Props) {
               </label>
               <label>
                 Min time (min)
-                <input
-                  type="number"
+                <NumberInput
                   min={0}
+                  integer
                   value={station.min_time}
-                  onChange={(e) =>
-                    patchStation(i, { min_time: Math.max(0, Math.floor(Number(e.target.value) || 0)) })
-                  }
+                  emptyValue={0}
+                  onCommit={(n) => patchStation(i, { min_time: n })}
                 />
               </label>
             </div>

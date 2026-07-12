@@ -1,4 +1,5 @@
-import type { Config, DisplayConfig, Meta } from "../types";
+import type { Config, Meta, NumericDisplayKey } from "../types";
+import NumberInput from "./NumberInput";
 
 interface Props {
   config: Config;
@@ -7,7 +8,7 @@ interface Props {
 }
 
 export default function DisplaySection({ config, meta, onChange }: Props) {
-  const setField = (key: keyof DisplayConfig, value: number) =>
+  const setField = (key: NumericDisplayKey, value: number) =>
     onChange({ ...config, display: { ...config.display, [key]: value } });
 
   return (
@@ -19,17 +20,14 @@ export default function DisplaySection({ config, meta, onChange }: Props) {
           return (
             <label key={f.key}>
               {f.label}
-              <input
-                type="number"
+              <NumberInput
                 min={f.min}
                 max={f.max}
                 step={f.step}
+                integer={!isFloat}
                 value={config.display[f.key]}
-                onChange={(e) => {
-                  const raw = Number(e.target.value);
-                  if (Number.isNaN(raw)) return;
-                  setField(f.key, isFloat ? raw : Math.round(raw));
-                }}
+                emptyValue={meta.display_defaults[f.key]}
+                onCommit={(n) => setField(f.key, n)}
               />
             </label>
           );
